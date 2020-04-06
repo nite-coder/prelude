@@ -2,7 +2,7 @@ package prelude
 
 type Command struct {
 	SessionID string
+	Path      string `json:"path"`
 	Type      string
-	Timestamp int64
-	Data      []byte
+	Data      []byte `json:"data"`
 }

@@ -8,6 +8,7 @@ import (
 
 // Gateway handles all websocket connections between client and server
 type Gateway struct {
+	manager *Manager
 }
 
 // NewGateway returns a Gateway instance
@@ -15,7 +16,7 @@ func NewGateway() prelude.Gatewayer {
 	return &Gateway{}
 }
 
-func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) {
+func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 	panic("not implemented") // TODO: Implement
 }
 
