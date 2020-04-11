@@ -22,7 +22,7 @@ var (
 // NewRouter return a router which handles all topics
 func NewRouter(handler *GatewayHTTPHandler) *napnap.Router {
 	router := napnap.NewRouter()
-	router.Get("/topics/:topic", handler.wsEndpoint)
+	router.Get("/", handler.wsEndpoint)
 	return router
 }
 

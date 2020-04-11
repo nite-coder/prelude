@@ -3,7 +3,6 @@ package websocket
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"hash/fnv"
 	"os"
 	"sync"
@@ -25,10 +24,11 @@ func FNV32a(s string) uint32 {
 
 // Manager 是用來控制 Gateway 的facade
 type Manager struct {
+	hub             prelude.Huber
 	hostname        string
 	ctx             context.Context
 	isActive        bool
-	mutex           *sync.Mutex
+	mutex           sync.Mutex
 	buckets         []*Bucket
 	status          *Status
 	commandChan     chan *prelude.Command
@@ -36,17 +36,18 @@ type Manager struct {
 }
 
 // NewManager 用來產生一個新的 Manager 用來控制 Gateway
-func NewManager() *Manager {
+func NewManager(hub prelude.Huber) *Manager {
 	hostname, _ := os.Hostname()
 
 	m := &Manager{
+		hub:             hub,
 		hostname:        hostname,
 		ctx:             context.Background(),
 		buckets:         make([]*Bucket, 1024),
 		status:          &Status{},
 		commandChan:     make(chan *prelude.Command, 1024),
 		commandStopChan: make(chan bool, 1),
-		mutex:           &sync.Mutex{},
+		mutex:           sync.Mutex{},
 	}
 
 	// inital bucket setting
@@ -127,7 +128,7 @@ func (m *Manager) Push(sessionID string, command *prelude.Command) error {
 // PushAll 廣播訊息到全部 gateway 有連線的 client
 func (m *Manager) PushAll(command *prelude.Command) error {
 	if m.isActive == false {
-		log.Debug("websocket: manager can't accept more command because manager is shutting down or closed.")
+		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
 		return nil
 	}
 	job := Job{
@@ -159,18 +160,14 @@ func (m *Manager) commandLoop() {
 	for {
 		select {
 		case cmd := <-m.commandChan:
-			// TODO: add command to hub
-			fmt.Print(cmd)
-			// topic := cmd.Metadata["topic"]
-			// for _, tt := range m.topics {
-			// 	if strings.EqualFold(tt.Name, topic) {
-			// 		for _, targetAddr := range tt.Upstreams {
-			// 			go func(addr string) {
-			// 				_ = m.sendRequest(addr, cmd)
-			// 			}(targetAddr)
-			// 		}
-			// 	}
-			// }
+			err := m.hub.Publish(cmd.Path, cmd)
+			if err != nil {
+				fields := log.Fields{
+					"path": cmd.Path,
+				}
+				log.WithFields(fields).WithError(err).Error("websocket: fail to publish command to hub")
+			}
+
 			if m.isActive == false && len(m.commandChan) == 0 {
 				m.commandStopChan <- true
 			}
@@ -178,7 +175,7 @@ func (m *Manager) commandLoop() {
 	}
 }
 
-// Start 代表開啟背景工作，例如把 command 送到 upstream server
+// Start 代表開啟背景工作，例如把 command 送到 hub
 func (m *Manager) Start() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -204,7 +201,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		log.Errorf("websocket: manager shutdown timeout: %v", ctx.Err())
+		log.WithError(ctx.Err()).Error("websocket: manager shutdown timeout")
 		break
 	case <-stop:
 		log.Info("websocket: manager was shutdown gracefully")

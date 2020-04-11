@@ -24,13 +24,14 @@ func TestGateway(t *testing.T) {
 
 	go func() {
 		websocketGateway := NewGateway()
-		websocketGateway.ListenAndServe(":10080", hub)
+		err = websocketGateway.ListenAndServe(":10080", hub)
+		require.Nil(t, err)
 	}()
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Second)
 
-	// Connect to the server
-	ws, _, err := websocket.DefaultDialer.Dial("http://localhost:10080", nil)
+	// connect to the server
+	ws, _, err := websocket.DefaultDialer.Dial("ws://localhost:10080", nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

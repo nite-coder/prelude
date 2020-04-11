@@ -206,7 +206,7 @@ func (s *WSSession) commandLoop() {
 
 func (s *WSSession) updateRouteLoop() {
 	timer := time.NewTicker(time.Duration(60) * time.Second)
-	log.Debug("websocket: refreshRouter starting")
+	log.Debug("websocket: updateRouteLoop is started")
 
 	for range timer.C {
 		if s.isActive == false {
@@ -316,7 +316,12 @@ func (s *WSSession) Start() error {
 			continue
 		}
 
-		log.Debugf("websocket: command request %+v", commandReq)
+		fields := log.Fields{
+			"path":       commandReq.Path,
+			"session_id": commandReq.SessionID,
+			"data":       string(commandReq.Data),
+		}
+		log.WithFields(fields).Debugf("command sent")
 
 		// TODO: add command to hub
 		_ = s.manager.AddCommandToHub(commandReq)
