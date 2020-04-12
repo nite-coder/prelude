@@ -210,16 +210,17 @@ func (s *WSSession) updateRouteLoop() {
 
 	for range timer.C {
 		if s.isActive == false {
-			log.Debugf("websocket: session id %s updateRouteLoop is finished", s.ID())
+			log.Debugf("websocket: updateRouteLoop is finished")
 			return
 		}
-
-		_ = s.manager.UpdateRouteInfo(s)
 
 		fields := log.Fields{
 			"session_id":   s.ID(),
 			"last_seen_at": s.lastSeenAt.String(),
 		}
+
+		_ = s.manager.UpdateRouteInfo(s)
+
 		log.WithFields(fields).Debug("websocket: session route was updated")
 	}
 }

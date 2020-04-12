@@ -24,14 +24,14 @@ func TestGateway(t *testing.T) {
 
 	go func() {
 		websocketGateway := NewGateway()
-		err = websocketGateway.ListenAndServe(":10080", hub)
+		err = websocketGateway.ListenAndServe("127.0.0.1:10080", hub)
 		require.Nil(t, err)
 	}()
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	// connect to the server
-	ws, _, err := websocket.DefaultDialer.Dial("ws://localhost:10080", nil)
+	ws, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:10080", nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -40,7 +40,7 @@ func TestGateway(t *testing.T) {
 	// Send message to server, read response and check to see if it's what we expect.
 	cmd := prelude.Command{
 		Path: "/hello",
-		Data: []byte("hello world"),
+		Data: []byte(`{"message":"hello world"}`),
 	}
 
 	err = ws.WriteJSON(cmd)
@@ -49,6 +49,6 @@ func TestGateway(t *testing.T) {
 	revCmd := <-helloQueue1
 
 	assert.Equal(t, "/hello", revCmd.Path)
-	assert.Equal(t, "Hello World", string(revCmd.Data))
+	assert.Equal(t, `{"message":"hello world"}`, string(revCmd.Data))
 
 }

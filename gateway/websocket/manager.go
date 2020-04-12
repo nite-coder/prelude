@@ -92,8 +92,9 @@ func (m *Manager) DeleteSession(session *WSSession) error {
 	return m.AddCommandToHub(cmd)
 }
 
-// RouteInfoCommand 代表 routeInfo 更新的資訊
-type RouteInfoCommand struct {
+// RouteInfo 代表 session 最後看見的時間
+type RouteInfo struct {
+	SessionID   string
 	GatewayAddr string
 	LastSeenAt  time.Time `json:"lastSeenAt"`
 }
@@ -101,8 +102,11 @@ type RouteInfoCommand struct {
 // UpdateRouteInfo 用來更新目前 session 所在的 gateway 主機和最後一次收到 pong 的時間 (lastSeenAt)
 func (m *Manager) UpdateRouteInfo(session *WSSession) error {
 	cmd := newCommand()
+	cmd.Type = "events"
+	cmd.Path = "/events/routes_info"
 
-	body := RouteInfoCommand{
+	body := RouteInfo{
+		SessionID:   session.ID(),
 		LastSeenAt:  session.LastSeenAt(),
 		GatewayAddr: m.hostname,
 	}

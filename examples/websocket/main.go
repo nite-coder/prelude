@@ -24,8 +24,11 @@ func main() {
 		panic(err)
 	}
 
-	helloQueue1 := make(chan *prelude.Command, 100)
+	helloQueue1 := make(chan *prelude.Command, 5)
 	err = hub.QueueSubscribe("/hello", "gateway", helloQueue1)
+
+	eventQueue := make(chan *prelude.Command, 5)
+	err = hub.QueueSubscribe("/events/routes_info", "gateway", eventQueue)
 
 	go func() {
 		for {
@@ -36,11 +39,20 @@ func main() {
 					"data": string(cmd.Data),
 				}
 				log.WithFields(fields).Debugf("command received")
+			case cmd := <-eventQueue:
+				fields := log.Fields{
+					"path": cmd.Path,
+					"data": string(cmd.Data),
+				}
+				log.WithFields(fields).Debugf("command session route received")
 			}
 		}
 	}()
 
 	websocketGateway := websocket.NewGateway()
 	err = websocketGateway.ListenAndServe(":10080", hub)
+	if err != nil {
+		log.WithError(err).Error("main: websocket gateway shutdown failed")
+	}
 
 }
