@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jasonsoft/log"
-	"github.com/jasonsoft/prelude"
+	"github.com/0x5487/prelude"
+	"github.com/nite-coder/blackbear/pkg/log"
 )
 
 var fnvHash32 = fnv.New32a()
@@ -166,10 +166,7 @@ func (m *Manager) commandLoop() {
 		case cmd := <-m.commandChan:
 			err := m.hub.Publish(cmd.Path, cmd)
 			if err != nil {
-				fields := log.Fields{
-					"path": cmd.Path,
-				}
-				log.WithFields(fields).WithError(err).Error("websocket: fail to publish command to hub")
+				log.Str("path", cmd.Path).Error("websocket: fail to publish command to hub")
 			}
 
 			if m.isActive == false && len(m.commandChan) == 0 {
@@ -205,7 +202,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		log.WithError(ctx.Err()).Error("websocket: manager shutdown timeout")
+		log.Err(ctx.Err()).Error("websocket: manager shutdown timeout")
 		break
 	case <-stop:
 		log.Info("websocket: manager was shutdown gracefully")

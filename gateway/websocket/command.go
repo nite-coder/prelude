@@ -3,8 +3,8 @@ package websocket
 import (
 	"encoding/json"
 
+	"github.com/0x5487/prelude"
 	"github.com/gorilla/websocket"
-	"github.com/jasonsoft/prelude"
 )
 
 // NewCommand 建立一個新 command

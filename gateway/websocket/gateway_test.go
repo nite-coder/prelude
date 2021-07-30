@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/0x5487/prelude"
+	"github.com/0x5487/prelude/hub/nats"
 	"github.com/gorilla/websocket"
-	"github.com/jasonsoft/prelude"
-	"github.com/jasonsoft/prelude/hub/nats"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/assert"
 )
 
 func TestGateway(t *testing.T) {

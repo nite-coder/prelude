@@ -3,7 +3,7 @@ package nats
 import (
 	"testing"
 
-	"github.com/jasonsoft/prelude"
+	"github.com/0x5487/prelude"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

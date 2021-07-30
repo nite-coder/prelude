@@ -1,6 +1,6 @@
 package websocket
 
-import "github.com/jasonsoft/prelude"
+import "github.com/0x5487/prelude"
 
 const (
 	opPush    = 1

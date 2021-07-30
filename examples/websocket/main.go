@@ -1,17 +1,19 @@
 package main
 
 import (
-	"github.com/jasonsoft/log"
-	"github.com/jasonsoft/log/handlers/console"
-	"github.com/jasonsoft/prelude"
-	"github.com/jasonsoft/prelude/gateway/websocket"
-	hubNATS "github.com/jasonsoft/prelude/hub/nats"
+	"github.com/0x5487/prelude"
+	"github.com/0x5487/prelude/gateway/websocket"
+	hubNATS "github.com/0x5487/prelude/hub/nats"
+	"github.com/nite-coder/blackbear/pkg/log"
+	"github.com/nite-coder/blackbear/pkg/log/handler/console"
 )
 
 func main() {
 	// use console handler to log all level logs
+	logger := log.New()
 	clog := console.New()
-	log.RegisterHandler(clog, log.AllLevels...)
+	logger.AddHandler(clog, log.AllLevels...)
+	log.SetLogger(logger)
 
 	// optional: allow handlers to clear all buffer
 	defer log.Flush()
@@ -34,17 +36,9 @@ func main() {
 		for {
 			select {
 			case cmd := <-helloQueue1:
-				fields := log.Fields{
-					"path": cmd.Path,
-					"data": string(cmd.Data),
-				}
-				log.WithFields(fields).Debugf("command received")
+				log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command received")
 			case cmd := <-eventQueue:
-				fields := log.Fields{
-					"path": cmd.Path,
-					"data": string(cmd.Data),
-				}
-				log.WithFields(fields).Debugf("command session route received")
+				log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command session route received")
 			}
 		}
 	}()
@@ -52,7 +46,7 @@ func main() {
 	websocketGateway := websocket.NewGateway()
 	err = websocketGateway.ListenAndServe(":10080", hub)
 	if err != nil {
-		log.WithError(err).Error("main: websocket gateway shutdown failed")
+		log.Err(err).Error("main: websocket gateway shutdown failed")
 	}
 
 }

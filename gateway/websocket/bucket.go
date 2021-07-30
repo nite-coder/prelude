@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/jasonsoft/log"
-	"github.com/jasonsoft/prelude"
+	"github.com/0x5487/prelude"
+	"github.com/nite-coder/blackbear/pkg/log"
 )
 
 // Bucket 是水桶，用來加速查詢用

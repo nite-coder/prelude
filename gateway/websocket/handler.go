@@ -3,10 +3,11 @@ package websocket
 import (
 	"net/http"
 
+	"github.com/nite-coder/blackbear/pkg/log"
+	"github.com/nite-coder/blackbear/pkg/web"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/jasonsoft/log"
-	"github.com/jasonsoft/napnap"
 )
 
 var (
@@ -19,11 +20,10 @@ var (
 	}
 )
 
-// NewRouter return a router which handles all topics
-func NewRouter(handler *GatewayHTTPHandler) *napnap.Router {
-	router := napnap.NewRouter()
-	router.Get("/", handler.wsEndpoint)
-	return router
+// RegisterRoute return a router which handles all topics
+func RegisterRoute(server *web.WebServer, handler *GatewayHTTPHandler) *web.WebServer {
+	server.Get("/", handler.wsEndpoint)
+	return server
 }
 
 // GatewayHTTPHandler 用來是 Gateway http 的 handler
@@ -38,7 +38,7 @@ func NewGatewayHTTPHandler(manager *Manager) *GatewayHTTPHandler {
 	}
 }
 
-func (h *GatewayHTTPHandler) wsEndpoint(c *napnap.Context) {
+func (h *GatewayHTTPHandler) wsEndpoint(c *web.Context) error {
 	ctx := c.StdContext()
 	logger := log.FromContext(ctx)
 
@@ -54,5 +54,5 @@ func (h *GatewayHTTPHandler) wsEndpoint(c *napnap.Context) {
 	sessionID := uuid.New().String()
 	clientIP := c.ClientIP()
 	wsSession := NewWSSession(sessionID, clientIP, conn, h.manager)
-	_ = wsSession.Start()
+	return wsSession.Start()
 }

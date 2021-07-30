@@ -1,14 +1,14 @@
 package websocket
 
 import (
+	"encoding/json"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/0x5487/prelude"
 	"github.com/gorilla/websocket"
-	"github.com/jasonsoft/log"
-	"github.com/jasonsoft/prelude"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/nite-coder/blackbear/pkg/log"
 )
 
 const (
@@ -145,9 +145,9 @@ func (s *WSSession) writeLoop() {
 			if err = s.socket.WriteMessage(message.MsgType, message.MsgData); err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") ||
 					err == websocket.ErrCloseSent {
-					log.WithError(err).Debug("websocket: wrtieLoop error")
+					log.Err(err).Debug("websocket: wrtieLoop error")
 				} else {
-					log.WithError(err).Error("websocket: wrtieLoop error")
+					log.Err(err).Error("websocket: wrtieLoop error")
 				}
 				return
 			}
@@ -155,9 +155,9 @@ func (s *WSSession) writeLoop() {
 			if err := s.socket.WriteMessage(websocket.PingMessage, nil); err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") ||
 					err == websocket.ErrCloseSent {
-					log.WithError(err).Debug("websocket: wrtieLoop ping error")
+					log.Err(err).Debug("websocket: wrtieLoop ping error")
 				} else {
-					log.WithError(err).Warn("websocket: wrtieLoop ping error")
+					log.Err(err).Warn("websocket: wrtieLoop ping error")
 				}
 				return
 			}
@@ -166,8 +166,6 @@ func (s *WSSession) writeLoop() {
 }
 
 func (s *WSSession) commandLoop() {
-	jsoner := jsoniter.ConfigCompatibleWithStandardLibrary
-
 	for {
 		if s.isActive == false {
 			log.Debugf("websocket: session id %s commandLoop is finished", s.ID())
@@ -179,7 +177,7 @@ func (s *WSSession) commandLoop() {
 				// 目前先把 command aggreation 的機制移除，所以不會有 Queue 一秒的問題
 				commands := []*prelude.Command{}
 				commands = append(commands, cmd)
-				buf, err := jsoner.Marshal(commands)
+				buf, err := json.Marshal(commands)
 				if err != nil {
 					log.Errorf("websocket: command marshal failed: %v", err)
 					continue
@@ -214,14 +212,9 @@ func (s *WSSession) updateRouteLoop() {
 			return
 		}
 
-		fields := log.Fields{
-			"session_id":   s.ID(),
-			"last_seen_at": s.lastSeenAt.String(),
-		}
-
 		_ = s.manager.UpdateRouteInfo(s)
 
-		log.WithFields(fields).Debug("websocket: session route was updated")
+		log.Str("session_id", s.ID()).Str("last_seen_at", s.lastSeenAt.String()).Debug("websocket: session route was updated")
 	}
 }
 
@@ -243,7 +236,7 @@ func (s *WSSession) sendMessage(msg *WSMessage) {
 func (s *WSSession) SendCommand(cmd *prelude.Command) error {
 	_, err := toWSMessage(cmd)
 	if err != nil {
-		log.WithError(err).Error("websocket: command to message fail")
+		log.Err(err).Error("websocket: command to message fail")
 		return err
 	}
 
@@ -313,16 +306,11 @@ func (s *WSSession) Start() error {
 
 		commandReq, err = createCommand(message.MsgData)
 		if err != nil {
-			log.WithError(err).Error("websocket: websocket message is invalid command")
+			log.Err(err).Error("websocket: websocket message is invalid command")
 			continue
 		}
 
-		fields := log.Fields{
-			"path":       commandReq.Path,
-			"session_id": commandReq.SessionID,
-			"data":       string(commandReq.Data),
-		}
-		log.WithFields(fields).Debugf("command sent")
+		log.Str("path", commandReq.Path).Str("session_id", commandReq.SessionID).Str("data", string(commandReq.Data)).Debugf("command sent")
 
 		// TODO: add command to hub
 		_ = s.manager.AddCommandToHub(commandReq)

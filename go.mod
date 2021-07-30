@@ -1,18 +1,12 @@
-module github.com/jasonsoft/prelude
+module github.com/0x5487/prelude
 
 go 1.14
 
 require (
-	github.com/golang/protobuf v1.3.5 // indirect
-	github.com/google/go-cmp v0.4.0 // indirect
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/jasonsoft/log v1.0.3
-	github.com/jasonsoft/napnap v1.0.0
-	github.com/json-iterator/go v1.1.9
-	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
-	github.com/nats-io/nats.go v1.9.1
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/stretchr/testify v1.5.1
-	gotest.tools v2.2.0+incompatible
+	github.com/nats-io/nats-server/v2 v2.3.2 // indirect
+	github.com/nats-io/nats.go v1.11.1-0.20210623165838-4b75fc59ae30
+	github.com/nite-coder/blackbear v0.0.0-20210728085259-fa49f7e9e5b4
+	github.com/stretchr/testify v1.7.0
 )

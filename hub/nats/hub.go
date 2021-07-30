@@ -3,7 +3,7 @@ package nats
 import (
 	"encoding/json"
 
-	"github.com/jasonsoft/prelude"
+	"github.com/0x5487/prelude"
 	natsClient "github.com/nats-io/nats.go"
 )
 

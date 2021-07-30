@@ -8,9 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jasonsoft/log"
-	"github.com/jasonsoft/napnap"
-	"github.com/jasonsoft/prelude"
+	"github.com/0x5487/prelude"
+	"github.com/nite-coder/blackbear/pkg/log"
+	"github.com/nite-coder/blackbear/pkg/web"
+	"github.com/nite-coder/blackbear/pkg/web/middleware"
 )
 
 // Gateway handles all websocket connections between client and server
@@ -26,34 +27,27 @@ func NewGateway() prelude.Gatewayer {
 func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 	g.manager = NewManager(hub)
 
-	nap := napnap.New()
-	corsOpts := napnap.Options{
+	s := web.NewServer()
+	corsOpts := middleware.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
 		AllowedHeaders: []string{"*"},
 	}
-	nap.Use(napnap.NewCors(corsOpts))
-	nap.Use(napnap.NewHealth())
+	s.Use(middleware.NewCors(corsOpts))
+	s.Use(middleware.NewHealth())
 
-	router := napnap.NewRouter()
-	router.Get("/ping", func(c *napnap.Context) {
+	s.Get("/ping", func(c *web.Context) error {
 		_ = c.String(http.StatusOK, "["+c.ClientIP()+"] pong!!!")
+		return nil
 	})
-	nap.Use(router)
 
 	gatewayHTTPhandler := NewGatewayHTTPHandler(g.manager)
-	gatewayRouter := NewRouter(gatewayHTTPhandler)
-	nap.Use(gatewayRouter)
-
-	httpServer := &http.Server{
-		Addr:    bind,
-		Handler: nap,
-	}
+	s = RegisterRoute(s, gatewayHTTPhandler)
 
 	go func() {
 		// service connections
-		log.Infof("websocket: Listening and serving HTTP on %s\n", httpServer.Addr)
-		err := httpServer.ListenAndServe()
+		log.Infof("websocket: Listening and serving HTTP on %s\n", bind)
+		err := s.Run(bind)
 		if err == http.ErrServerClosed {
 			log.Infof("websocket: http server closed under request: %v", err)
 		} else {
@@ -76,12 +70,6 @@ func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 		log.Errorf("websocket: gateway manager shutdown error: %v", err)
 	} else {
 		log.Info("websocket: gateway manager gracefully stopped")
-	}
-
-	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Errorf("websocket: http server shutdown error: %v", err)
-	} else {
-		log.Info("websocket: http gracefully stopped")
 	}
 
 	return nil
