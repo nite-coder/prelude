@@ -4,24 +4,25 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func testRoute(t *testing.T, cmd string) {
+func testRoute(t *testing.T, path string) {
 	passed := false
 
-	router := NewRouter()
-	router.Add(cmd, func(c *Context) error {
+	router := newRouter()
+
+	router.AddRoute(path, func(c *Context) error {
 		passed = true
 		return nil
 	})
 
-	c := NewContext()
-	h := router.Find(cmd)
+	cmd := Command{}
+	c := NewContext(nil, &cmd)
+	h := router.Find(path)
 	err := h(c)
-	if err == nil {
 
-	}
-
+	require.NoError(t, err)
 	assert.True(t, passed)
 }
 

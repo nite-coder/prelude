@@ -2,21 +2,12 @@ package prelude
 
 import "strings"
 
-var (
-	_logger *logger
-)
-
-func init() {
-	_logger = &logger{
-		mode: debugLevel,
-	}
-}
-
 // HandlerFunc defines a function to server HTTP requests
 type HandlerFunc func(c *Context) error
 
 type Router struct {
 	tree *tree
+	hub  Huber
 }
 
 type tree struct {
@@ -27,7 +18,7 @@ type kind uint8
 
 var (
 	notFoundHandler = func(c *Context) {
-		_logger.debug("NotFound")
+
 	}
 )
 
@@ -38,8 +29,15 @@ const (
 )
 
 // NewRouter function will create a new router instance
-func NewRouter() *Router {
-	return &Router{
+func NewRouter(hub Huber) *Router {
+	r := newRouter()
+	r.hub = hub
+	hub.SetRouter(r)
+	return r
+}
+
+func newRouter() *Router {
+	r := Router{
 		tree: &tree{
 			rootNode: &node{
 				parent:    nil,
@@ -50,27 +48,14 @@ func NewRouter() *Router {
 			},
 		},
 	}
+	return &r
 }
 
-// Invoke function is a middleware entry
-// func (r *Router) Invoke(c *Context, next HandlerFunc) {
-// 	h := r.Find(c.Request.URL.Path, c)
-
-// 	if h == nil {
-// 		next(c)
-// 	} else {
-// 		h(c)
-// 	}
-// }
-
 // Add function which adding path and handler to router
-func (r *Router) Add(path string, handler HandlerFunc) {
-	_logger.debug("===Add")
+func (r *Router) AddRoute(path string, handler HandlerFunc) {
 	if len(path) == 0 {
 		panic("router: path couldn't be empty")
 	}
-
-	_logger.debug("path:" + path)
 
 	currentNode := r.tree.rootNode
 	if path == "/" {
@@ -93,7 +78,7 @@ func (r *Router) Add(path string, handler HandlerFunc) {
 		if childNode == nil {
 			childNode = newNode(element, skind)
 			currentNode.addChild(childNode)
-			_logger.debug("add node")
+
 		}
 
 		// last node in the path
@@ -105,12 +90,16 @@ func (r *Router) Add(path string, handler HandlerFunc) {
 		currentNode = childNode
 	}
 
+	if r.hub == nil {
+		return
+	}
+
+	r.hub.QueueSubscribe(path)
 }
 
 // Find returns http handler for specific path
 func (r *Router) Find(path string) HandlerFunc {
-	_logger.debug("===Find")
-	_logger.debug("path:" + path)
+
 	if path[0] == '/' && len(path) > 1 {
 		path = path[1:]
 	}

@@ -19,29 +19,26 @@ func main() {
 	defer log.Flush()
 
 	opts := hubNATS.HubOptions{
-		URL: "nats://127.0.0.1:4222",
+		URL:   "nats://nats:4222",
+		Group: "gateway",
 	}
 	hub, err := hubNATS.NewNatsHub(opts)
 	if err != nil {
 		panic(err)
 	}
 
-	helloQueue1 := make(chan *prelude.Command, 5)
-	err = hub.QueueSubscribe("/hello", "gateway", helloQueue1)
+	router := prelude.NewRouter(hub)
+	router.AddRoute("/hello", func(c *prelude.Context) error {
+		cmd := c.Command
+		log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command received")
+		return nil
+	})
 
-	eventQueue := make(chan *prelude.Command, 5)
-	err = hub.QueueSubscribe("/events/routes_info", "gateway", eventQueue)
-
-	go func() {
-		for {
-			select {
-			case cmd := <-helloQueue1:
-				log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command received")
-			case cmd := <-eventQueue:
-				log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command session route received")
-			}
-		}
-	}()
+	router.AddRoute("/events/routes_info", func(c *prelude.Context) error {
+		cmd := c.Command
+		log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command session route received")
+		return nil
+	})
 
 	websocketGateway := websocket.NewGateway()
 	err = websocketGateway.ListenAndServe(":10080", hub)

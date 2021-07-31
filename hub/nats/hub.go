@@ -8,11 +8,14 @@ import (
 )
 
 type Hub struct {
-	conn *natsClient.Conn
+	router *prelude.Router
+	conn   *natsClient.Conn
+	group  string
 }
 
 type HubOptions struct {
-	URL string
+	URL   string
+	Group string
 }
 
 // TODO: we need to manage connection later in case the connect is disconnected
@@ -29,6 +32,14 @@ func NewNatsHub(opts HubOptions) (prelude.Huber, error) {
 	return &hub, nil
 }
 
+func (hub *Hub) Router() *prelude.Router {
+	return hub.router
+}
+
+func (hub *Hub) SetRouter(router *prelude.Router) {
+	hub.router = router
+}
+
 func (hub *Hub) Publish(topic string, command *prelude.Command) error {
 	b, err := json.Marshal(command)
 	if err != nil {
@@ -38,15 +49,17 @@ func (hub *Hub) Publish(topic string, command *prelude.Command) error {
 	return hub.conn.Publish(topic, b)
 }
 
-func (hub *Hub) QueueSubscribe(topic string, group string, ch chan *prelude.Command) error {
-	_, err := hub.conn.QueueSubscribe(topic, group, func(msg *natsClient.Msg) {
+func (hub *Hub) QueueSubscribe(topic string) error {
+	_, err := hub.conn.QueueSubscribe(topic, hub.group, func(msg *natsClient.Msg) {
 		cmd := prelude.Command{}
 		err := json.Unmarshal(msg.Data, &cmd)
 		if err != nil {
 			return
 		}
 
-		ch <- &cmd
+		h := hub.router.Find(topic)
+		c := prelude.NewContext(hub, &cmd)
+		err = h(c)
 	})
 
 	return err

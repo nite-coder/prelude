@@ -1,10 +1,9 @@
 package prelude
 
-import "encoding/json"
-
 type Command struct {
-	SessionID string          `json:"session_id"`
-	Path      string          `json:"path"`
-	Type      string          `json:"type"`
-	Data      json.RawMessage `json:"data"`
+	SenderID  string `json:"sender_id"`
+	RequestID string `json:"request_id"`
+	Path      string `json:"path"`
+	Type      string `json:"type"`
+	Data      []byte `json:"data"`
 }

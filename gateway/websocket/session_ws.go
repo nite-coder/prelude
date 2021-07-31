@@ -13,7 +13,7 @@ import (
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	// writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
@@ -310,7 +310,7 @@ func (s *WSSession) Start() error {
 			continue
 		}
 
-		log.Str("path", commandReq.Path).Str("session_id", commandReq.SessionID).Str("data", string(commandReq.Data)).Debugf("command sent")
+		log.Str("path", commandReq.Path).Str("session_id", commandReq.SenderID).Str("data", string(commandReq.Data)).Debugf("command sent")
 
 		// TODO: add command to hub
 		_ = s.manager.AddCommandToHub(commandReq)

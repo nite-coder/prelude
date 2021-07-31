@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/0x5487/prelude"
@@ -8,34 +9,49 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type Item struct {
+	Message string
+}
+
 func TestPublishAndQueueSubscribe(t *testing.T) {
 	opts := HubOptions{
-		URL: "nats://127.0.0.1:4222",
+		URL: "nats://nats:4222",
 	}
 	hub, err := NewNatsHub(opts)
 	require.Nil(t, err)
 
-	queue1 := make(chan *prelude.Command)
-	err = hub.QueueSubscribe("s/session_1", "gateway", queue1)
-	require.Nil(t, err)
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	queue2 := make(chan *prelude.Command, 1)
-	err = hub.QueueSubscribe("s/session_2", "gateway", queue2)
-	require.Nil(t, err)
-
-	cmd := prelude.Command{
-		SessionID: "abbc",
-		Type:      "cmd",
-		Data:      []byte("Hello World"),
+	router := prelude.NewRouter(hub)
+	sendCMD := prelude.Command{
+		SenderID: "abc123",
+		Path:     "/sent",
+		Type:     "request",
+		Data:     []byte(`{"message":"hello world"}`),
 	}
 
-	err = hub.Publish("s/session_1", &cmd)
+	router.AddRoute("/s/abc123", func(c *prelude.Context) error {
+		assert.Equal(t, "wow", string(c.Command.Path))
+		assert.Equal(t, "respo", string(c.Command.Data))
+		wg.Done()
+		return nil
+	})
+
+	router.AddRoute("/sent", func(c *prelude.Context) error {
+		item := Item{}
+		err := c.BindJSON(&item)
+		require.NoError(t, err)
+
+		assert.Equal(t, "hello world", item.Message)
+		assert.Equal(t, sendCMD.SenderID, c.Command.SenderID)
+		wg.Done()
+		return c.Response("wow", []byte("respo"))
+	})
+
+	err = hub.Publish(sendCMD.Path, &sendCMD)
 	require.Nil(t, err)
 
-	revCmd := <-queue1
-
-	assert.Equal(t, "abbc", revCmd.SessionID)
-	assert.Equal(t, "cmd", revCmd.Type)
-	assert.Equal(t, "Hello World", string(revCmd.Data))
+	wg.Wait()
 
 }

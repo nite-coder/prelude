@@ -72,6 +72,11 @@ func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 		log.Info("websocket: gateway manager gracefully stopped")
 	}
 
+	if err := s.Shutdown(ctx); err != nil {
+		log.Errorf("websocket: web server shutdown error: %v", err)
+	} else {
+		log.Info("websocket: web server gracefully stopped")
+	}
 	return nil
 }
 
