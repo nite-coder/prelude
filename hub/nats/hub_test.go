@@ -26,18 +26,18 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 	router := prelude.NewRouter(hub)
 	sendCMD := prelude.Command{
 		SenderID: "abc123",
-		Action:   "/sent",
+		Action:   "sent",
 		Data:     []byte(`{"message":"hello world"}`),
 	}
 
-	router.AddRoute("/s/abc123", func(c *prelude.Context) error {
+	router.AddRoute("s.abc123", func(c *prelude.Context) error {
 		assert.Equal(t, "wow", string(c.Command.Action))
 		assert.Equal(t, "done", string(c.Command.Data))
 		wg.Done()
 		return nil
 	})
 
-	router.AddRoute("/sent", func(c *prelude.Context) error {
+	router.AddRoute("sent", func(c *prelude.Context) error {
 		item := Item{}
 		err := c.BindJSON(&item)
 		require.NoError(t, err)

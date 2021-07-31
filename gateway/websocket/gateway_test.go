@@ -20,12 +20,20 @@ func TestGateway(t *testing.T) {
 	require.Nil(t, err)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 
 	router := prelude.NewRouter(hub)
 	router.AddRoute("hello", func(c *prelude.Context) error {
 		assert.Equal(t, "hello", c.Command.Action)
+		c.Set("token", "atoken")
 		c.Response("wow", []byte("done"))
+		wg.Done()
+		return nil
+	})
+
+	router.AddRoute("metadata.get", func(c *prelude.Context) error {
+		val := c.Get("token")
+		assert.Equal(t, "atoken", val)
 		wg.Done()
 		return nil
 	})
@@ -61,9 +69,14 @@ func TestGateway(t *testing.T) {
 	assert.Equal(t, 1, len(revCMDs))
 
 	revCMD := revCMDs[0]
-
 	assert.Equal(t, "wow", revCMD.Action)
 	assert.Equal(t, "done", string(revCMD.Data))
+
+	sendCMD = prelude.Command{
+		Action: "metadata.get",
+	}
+	err = ws.WriteJSON(sendCMD)
+	require.Nil(t, err)
 
 	wg.Wait()
 }

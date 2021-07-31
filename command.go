@@ -3,7 +3,7 @@ package prelude
 type CommandType int32
 
 const (
-	Metadata = 1
+	CommandTypeMetadata = 1
 )
 
 type Command struct {
@@ -20,4 +20,9 @@ func NewCommand() *Command {
 	return &Command{
 		Metadata: make(map[string]interface{}),
 	}
+}
+
+type Item struct {
+	Key   string
+	Value interface{}
 }

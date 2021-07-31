@@ -32,7 +32,7 @@ func toWSMessage(command *prelude.Command) (*WSMessage, error) {
 	return msg, nil
 }
 
-func createEvent(name string, claims map[string]string) *prelude.Command {
+func createEvent(name string, metadata map[string]interface{}) *prelude.Command {
 	// send addsession event to mq
 	cmd := prelude.NewCommand()
 

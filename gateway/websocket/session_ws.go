@@ -41,7 +41,7 @@ type WSSession struct {
 	clientIP   string
 
 	id          string
-	claims      map[string]string
+	metadata    map[string]interface{}
 	socket      *websocket.Conn
 	rooms       sync.Map
 	roomID      string // member play chatroom and use the roomID
@@ -62,6 +62,7 @@ func NewWSSession(id string, clientIP string, conn *websocket.Conn, manager *Man
 		outChan:     make(chan *WSMessage, 1024),
 		commandChan: make(chan *prelude.Command, 1024),
 		clientIP:    clientIP,
+		metadata:    make(map[string]interface{}),
 	}
 }
 
@@ -75,9 +76,9 @@ func (s *WSSession) LastSeenAt() time.Time {
 	return s.lastSeenAt
 }
 
-// Claims 可以取得這個 session 裡的 claims
-func (s *WSSession) Claims() map[string]string {
-	return s.claims
+// Metadata returns session's metadata
+func (s *WSSession) Metadata() map[string]interface{} {
+	return s.metadata
 }
 
 func (s *WSSession) readLoop() {
@@ -284,8 +285,22 @@ func (s *WSSession) Start() error {
 	go s.updateRouteLoop()
 
 	router := s.manager.hub.Router()
-	topic := fmt.Sprintf("/s/%s", s.ID())
+	topic := fmt.Sprintf("s.%s", s.ID())
 	router.AddRoute(topic, func(c *prelude.Context) error {
+		if c.Command.Type == prelude.CommandTypeMetadata {
+			item := prelude.Item{}
+			err := json.Unmarshal(c.Command.Data, &item)
+			if err != nil {
+				return err
+			}
+
+			switch c.Command.Action {
+			case "metadata.add":
+				s.metadata[item.Key] = item.Value
+				return nil
+			}
+		}
+
 		return s.SendCommand(c.Command)
 	})
 
@@ -318,6 +333,7 @@ func (s *WSSession) Start() error {
 		}
 
 		commandReq.SenderID = s.ID()
+		commandReq.Metadata = s.metadata
 
 		log.Str("action", commandReq.Action).Str("session_id", s.ID()).Str("data", string(commandReq.Data)).Debugf("command sent")
 
