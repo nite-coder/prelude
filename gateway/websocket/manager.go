@@ -87,7 +87,7 @@ func (m *Manager) DeleteSession(session *WSSession) error {
 	bucket.deleteSession(session)
 	m.status.decreaseOnlinePeople()
 
-	cmd := newCommand()
+	cmd := prelude.NewCommand()
 
 	return m.AddCommandToHub(cmd)
 }
@@ -101,9 +101,8 @@ type RouteInfo struct {
 
 // UpdateRouteInfo 用來更新目前 session 所在的 gateway 主機和最後一次收到 pong 的時間 (lastSeenAt)
 func (m *Manager) UpdateRouteInfo(session *WSSession) error {
-	cmd := newCommand()
-	cmd.Type = "events"
-	cmd.Path = "/events/routes_info"
+	cmd := prelude.NewCommand()
+	cmd.Action = "events.routes_info"
 
 	body := RouteInfo{
 		SessionID:   session.ID(),
@@ -164,9 +163,9 @@ func (m *Manager) commandLoop() {
 	for {
 		select {
 		case cmd := <-m.commandChan:
-			err := m.hub.Publish(cmd.Path, cmd)
+			err := m.hub.Publish(cmd.Action, cmd)
 			if err != nil {
-				log.Str("path", cmd.Path).Error("websocket: fail to publish command to hub")
+				log.Str("path", cmd.Action).Error("websocket: fail to publish command to hub")
 			}
 
 			if m.isActive == false && len(m.commandChan) == 0 {
@@ -185,7 +184,7 @@ func (m *Manager) Start() error {
 	return nil
 }
 
-// Shutdown 代表如何優雅的關閉 Gateway Manager
+// Shutdown represent graceful shutdown manager
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.mutex.Lock()
 	m.isActive = false

@@ -27,9 +27,7 @@ func testRoute(t *testing.T, path string) {
 }
 
 func TestRouterStaticRoute(t *testing.T) {
-	testRoute(t, "/")
-	testRoute(t, "/hello")
-	testRoute(t, "/hello")
-	testRoute(t, "/hello/put")
-	testRoute(t, "/hello/Delet")
+	testRoute(t, "hello")
+	testRoute(t, "hello.put")
+	testRoute(t, "hello.Delet")
 }

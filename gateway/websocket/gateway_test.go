@@ -23,8 +23,9 @@ func TestGateway(t *testing.T) {
 	wg.Add(1)
 
 	router := prelude.NewRouter(hub)
-	router.AddRoute("/hello", func(c *prelude.Context) error {
-		assert.Equal(t, "/hello", string(c.Command.Path))
+	router.AddRoute("hello", func(c *prelude.Context) error {
+		assert.Equal(t, "hello", c.Command.Action)
+		c.Response("wow", []byte("done"))
 		wg.Done()
 		return nil
 	})
@@ -46,13 +47,23 @@ func TestGateway(t *testing.T) {
 
 	// Send message to server, read response and check to see if it's what we expect.
 	sendCMD := prelude.Command{
-		Path: "/hello",
-		Data: []byte(`{"message":"hello world"}`),
+		Action: "hello",
+		Data:   []byte(`{"message":"hello world"}`),
 	}
 
 	err = ws.WriteJSON(sendCMD)
 	require.Nil(t, err)
 
-	wg.Wait()
+	revCMDs := []prelude.Command{}
+	err = ws.ReadJSON(&revCMDs)
+	require.Nil(t, err)
 
+	assert.Equal(t, 1, len(revCMDs))
+
+	revCMD := revCMDs[0]
+
+	assert.Equal(t, "wow", revCMD.Action)
+	assert.Equal(t, "done", string(revCMD.Data))
+
+	wg.Wait()
 }

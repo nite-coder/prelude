@@ -26,14 +26,13 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 	router := prelude.NewRouter(hub)
 	sendCMD := prelude.Command{
 		SenderID: "abc123",
-		Path:     "/sent",
-		Type:     "request",
+		Action:   "/sent",
 		Data:     []byte(`{"message":"hello world"}`),
 	}
 
 	router.AddRoute("/s/abc123", func(c *prelude.Context) error {
-		assert.Equal(t, "wow", string(c.Command.Path))
-		assert.Equal(t, "respo", string(c.Command.Data))
+		assert.Equal(t, "wow", string(c.Command.Action))
+		assert.Equal(t, "done", string(c.Command.Data))
 		wg.Done()
 		return nil
 	})
@@ -46,10 +45,10 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 		assert.Equal(t, "hello world", item.Message)
 		assert.Equal(t, sendCMD.SenderID, c.Command.SenderID)
 		wg.Done()
-		return c.Response("wow", []byte("respo"))
+		return c.Response("wow", []byte("done"))
 	})
 
-	err = hub.Publish(sendCMD.Path, &sendCMD)
+	err = hub.Publish(sendCMD.Action, &sendCMD)
 	require.Nil(t, err)
 
 	wg.Wait()

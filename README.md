@@ -8,7 +8,4 @@
 1. 自由使用不同的編碼格式 ( protobuf, json)
 1. 支援 middleware chain 路由
 1. Go 風格
-1. 
-
-
 

@@ -21,6 +21,10 @@ func (c *Context) Get(name string) string {
 	return ""
 }
 
+func (c *Context) Set(key string, val interface{}) {
+
+}
+
 func (c *Context) WriteBytes(name string) string {
 	return ""
 }
@@ -41,11 +45,11 @@ func (c *Context) JSON(obj interface{}) error {
 	return nil
 }
 
-func (c *Context) Response(path string, data []byte) error {
+func (c *Context) Response(action string, data []byte) error {
 	cmd := Command{
 		SenderID:  c.Command.SenderID,
 		RequestID: c.Command.RequestID,
-		Path:      path,
+		Action:    action,
 		Data:      data,
 	}
 

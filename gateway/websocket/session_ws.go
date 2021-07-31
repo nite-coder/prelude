@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -282,6 +283,12 @@ func (s *WSSession) Start() error {
 	go s.commandLoop()
 	go s.updateRouteLoop()
 
+	router := s.manager.hub.Router()
+	topic := fmt.Sprintf("/s/%s", s.ID())
+	router.AddRoute(topic, func(c *prelude.Context) error {
+		return s.SendCommand(c.Command)
+	})
+
 	var (
 		message    *WSMessage
 		commandReq *prelude.Command
@@ -310,9 +317,10 @@ func (s *WSSession) Start() error {
 			continue
 		}
 
-		log.Str("path", commandReq.Path).Str("session_id", commandReq.SenderID).Str("data", string(commandReq.Data)).Debugf("command sent")
+		commandReq.SenderID = s.ID()
 
-		// TODO: add command to hub
+		log.Str("action", commandReq.Action).Str("session_id", s.ID()).Str("data", string(commandReq.Data)).Debugf("command sent")
+
 		_ = s.manager.AddCommandToHub(commandReq)
 	}
 }

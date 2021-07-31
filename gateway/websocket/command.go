@@ -4,13 +4,9 @@ import (
 	"encoding/json"
 
 	"github.com/0x5487/prelude"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
-
-// NewCommand 建立一個新 command
-func newCommand() *prelude.Command {
-	return &prelude.Command{}
-}
 
 func createCommand(buf []byte) (*prelude.Command, error) {
 	var command prelude.Command
@@ -19,6 +15,11 @@ func createCommand(buf []byte) (*prelude.Command, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if command.RequestID == "" {
+		command.RequestID = uuid.NewString()
+	}
+
 	return &command, nil
 }
 
@@ -33,7 +34,7 @@ func toWSMessage(command *prelude.Command) (*WSMessage, error) {
 
 func createEvent(name string, claims map[string]string) *prelude.Command {
 	// send addsession event to mq
-	cmd := newCommand()
+	cmd := prelude.NewCommand()
 
 	return cmd
 }

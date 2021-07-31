@@ -51,7 +51,7 @@ func (h *GatewayHTTPHandler) wsEndpoint(c *web.Context) error {
 		panic(err)
 	}
 
-	sessionID := uuid.New().String()
+	sessionID := uuid.NewString()
 	clientIP := c.ClientIP()
 	wsSession := NewWSSession(sessionID, clientIP, conn, h.manager)
 	return wsSession.Start()

@@ -43,7 +43,7 @@ func newRouter() *Router {
 				parent:    nil,
 				children:  []*node{},
 				kind:      0,
-				name:      "/",
+				name:      "",
 				sortOrder: 0,
 			},
 		},
@@ -51,23 +51,23 @@ func newRouter() *Router {
 	return &r
 }
 
-// Add function which adding path and handler to router
-func (r *Router) AddRoute(path string, handler HandlerFunc) {
-	if len(path) == 0 {
-		panic("router: path couldn't be empty")
+// AddRoute function which adding action and handler to router
+func (r *Router) AddRoute(action string, handler HandlerFunc) {
+	if len(action) == 0 {
+		panic("router: action couldn't be empty")
 	}
 
 	currentNode := r.tree.rootNode
-	if path == "/" {
+	if action == "" {
 		currentNode.handler = handler
 		return
 	}
 
-	pathArray := strings.Split(path, "/")
-	count := len(pathArray)
+	actions := strings.Split(action, ".")
+	count := len(actions)
 	pathParams := []string{}
 
-	for index, element := range pathArray {
+	for index, element := range actions {
 		if len(element) == 0 {
 			continue
 		}
@@ -94,22 +94,17 @@ func (r *Router) AddRoute(path string, handler HandlerFunc) {
 		return
 	}
 
-	r.hub.QueueSubscribe(path)
+	r.hub.QueueSubscribe(action)
 }
 
 // Find returns http handler for specific path
 func (r *Router) Find(path string) HandlerFunc {
-
-	if path[0] == '/' && len(path) > 1 {
-		path = path[1:]
-	}
-
 	currentNode := r.tree.rootNode
-	if path == "/" {
+	if path == "" {
 		return currentNode.handler
 	}
 
-	pathArray := strings.Split(path, "/")
+	pathArray := strings.Split(path, ".")
 	count := len(pathArray)
 
 	for index, element := range pathArray {

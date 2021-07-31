@@ -14,8 +14,6 @@ func main() {
 	clog := console.New()
 	logger.AddHandler(clog, log.AllLevels...)
 	log.SetLogger(logger)
-
-	// optional: allow handlers to clear all buffer
 	defer log.Flush()
 
 	opts := hubNATS.HubOptions{
@@ -28,15 +26,15 @@ func main() {
 	}
 
 	router := prelude.NewRouter(hub)
-	router.AddRoute("/hello", func(c *prelude.Context) error {
+	router.AddRoute("hello", func(c *prelude.Context) error {
 		cmd := c.Command
-		log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command received")
+		log.Str("action", cmd.Action).Str("data", string(cmd.Data)).Debugf("command received")
 		return nil
 	})
 
-	router.AddRoute("/events/routes_info", func(c *prelude.Context) error {
+	router.AddRoute("events.routes_info", func(c *prelude.Context) error {
 		cmd := c.Command
-		log.Str("path", cmd.Path).Str("data", string(cmd.Data)).Debugf("command session route received")
+		log.Str("action", cmd.Action).Str("data", string(cmd.Data)).Debugf("command session route received")
 		return nil
 	})
 
