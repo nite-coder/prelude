@@ -12,7 +12,7 @@ func main() {
 	// use console handler to log all level logs
 	logger := log.New()
 	clog := console.New()
-	logger.AddHandler(clog, log.AllLevels...)
+	logger.AddHandler(clog, log.GetLevelsFromMinLevel("error")...)
 	log.SetLogger(logger)
 	defer log.Flush()
 

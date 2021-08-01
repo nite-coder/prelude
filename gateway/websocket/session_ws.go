@@ -34,7 +34,7 @@ type WSMessage struct {
 
 // WSSession 代表 websocket 每一個 websocket 的連線
 type WSSession struct {
-	mutex       *sync.Mutex
+	mutex       sync.Mutex
 	activeState int32
 	lastSeenAt  time.Time
 	manager     *Manager
@@ -57,7 +57,6 @@ func NewWSSession(id string, clientIP string, conn *websocket.Conn, manager *Man
 	commandCount, _ := config.Int32("app.session_command_count", 128)
 
 	return &WSSession{
-		mutex:       &sync.Mutex{},
 		manager:     manager,
 		lastSeenAt:  time.Now().UTC(),
 		id:          id,
@@ -101,7 +100,6 @@ func (s *WSSession) SetActive(val bool) {
 
 func (s *WSSession) readLoop() {
 	defer func() {
-		close(s.inChan)
 		_ = s.Close()
 	}()
 
@@ -136,7 +134,7 @@ func (s *WSSession) readLoop() {
 		msgType, msgData, err = s.socket.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived, websocket.CloseAbnormalClosure) {
-				log.Errorf("websocket: websocket message error: %v", err)
+				log.Err(err).Errorf("websocket: read websocket message failed")
 			}
 			return
 		}
@@ -152,7 +150,6 @@ func (s *WSSession) readLoop() {
 
 func (s *WSSession) writeLoop() {
 	defer func() {
-		close(s.outChan)
 		_ = s.Close()
 	}()
 	pingTicker := time.NewTicker(pingPeriod)
@@ -274,18 +271,22 @@ func (s *WSSession) SendCommand(cmd *prelude.Command) error {
 func (s *WSSession) Close() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	if s.IsActive() {
 		_ = s.socket.Close()
 		_ = s.manager.DeleteSession(s)
 		s.SetActive(false)
-		log.Debug("websocket: session was closed")
+		log.Str("session_id", s.ID()).Debug("websocket: session was closed")
 	}
+
 	return nil
 }
 
 // Start 代表開始這個 websocket session 開始
 func (s *WSSession) Start() error {
 	defer func() {
+		close(s.inChan)
+		close(s.outChan)
 		close(s.commandChan)
 		_ = s.Close()
 	}()
