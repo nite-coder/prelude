@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/0x5487/prelude"
 	"github.com/gorilla/websocket"
+	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
 )
 
@@ -34,11 +36,11 @@ type WSMessage struct {
 
 // WSSession 代表 websocket 每一個 websocket 的連線
 type WSSession struct {
-	mutex      *sync.Mutex
-	isActive   bool
-	lastSeenAt time.Time
-	manager    *Manager
-	clientIP   string
+	mutex       *sync.Mutex
+	activeState int32
+	lastSeenAt  time.Time
+	manager     *Manager
+	clientIP    string
 
 	id          string
 	metadata    map[string]interface{}
@@ -52,15 +54,19 @@ type WSSession struct {
 
 // NewWSSession 產生一個新的 websocket session
 func NewWSSession(id string, clientIP string, conn *websocket.Conn, manager *Manager) *WSSession {
+	inboundCount, _ := config.Int32("app.session_inbound_count", 128)
+	outboundCount, _ := config.Int32("app.session_outbound_count", 128)
+	commandCount, _ := config.Int32("app.session_outbound_count", 128)
+
 	return &WSSession{
 		mutex:       &sync.Mutex{},
 		manager:     manager,
 		lastSeenAt:  time.Now().UTC(),
 		id:          id,
 		socket:      conn,
-		inChan:      make(chan *WSMessage, 1024),
-		outChan:     make(chan *WSMessage, 1024),
-		commandChan: make(chan *prelude.Command, 1024),
+		inChan:      make(chan *WSMessage, inboundCount),
+		outChan:     make(chan *WSMessage, outboundCount),
+		commandChan: make(chan *prelude.Command, commandCount),
 		clientIP:    clientIP,
 		metadata:    make(map[string]interface{}),
 	}
@@ -79,6 +85,23 @@ func (s *WSSession) LastSeenAt() time.Time {
 // Metadata returns session's metadata
 func (s *WSSession) Metadata() map[string]interface{} {
 	return s.metadata
+}
+
+// IsActive reprsent active status of manager
+func (s *WSSession) IsActive() bool {
+	if atomic.LoadInt32(&(s.activeState)) != 0 {
+		return true
+	}
+	return false
+}
+
+// SetActive update status of active
+func (s *WSSession) SetActive(val bool) {
+	var i int32 = 0
+	if val {
+		i = 1
+	}
+	atomic.StoreInt32(&(s.activeState), int32(i))
 }
 
 func (s *WSSession) readLoop() {
@@ -102,7 +125,7 @@ func (s *WSSession) readLoop() {
 	)
 
 	for {
-		if s.isActive == false {
+		if s.IsActive() == false {
 			log.Debugf("websocket: session id %s readLoop is finished", s.ID())
 			return
 		}
@@ -138,7 +161,7 @@ func (s *WSSession) writeLoop() {
 	)
 
 	for {
-		if s.isActive == false {
+		if s.IsActive() == false {
 			log.Debugf("websocket: session id %s writeLoop is finished", s.ID())
 			return
 		}
@@ -169,7 +192,7 @@ func (s *WSSession) writeLoop() {
 
 func (s *WSSession) commandLoop() {
 	for {
-		if s.isActive == false {
+		if s.IsActive() == false {
 			log.Debugf("websocket: session id %s commandLoop is finished", s.ID())
 			return
 		}
@@ -209,7 +232,7 @@ func (s *WSSession) updateRouteLoop() {
 	log.Debug("websocket: updateRouteLoop is started")
 
 	for range timer.C {
-		if s.isActive == false {
+		if s.IsActive() == false {
 			log.Debugf("websocket: updateRouteLoop is finished")
 			return
 		}
@@ -254,10 +277,10 @@ func (s *WSSession) SendCommand(cmd *prelude.Command) error {
 func (s *WSSession) Close() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if s.isActive {
+	if s.IsActive() {
 		_ = s.socket.Close()
 		_ = s.manager.DeleteSession(s)
-		s.isActive = false
+		s.SetActive(false)
 		log.Debug("websocket: session was closed")
 	}
 	return nil
@@ -270,9 +293,7 @@ func (s *WSSession) Start() error {
 		_ = s.Close()
 	}()
 
-	s.mutex.Lock()
-	s.isActive = true
-	s.mutex.Unlock()
+	s.SetActive(true)
 
 	err := s.manager.AddSession(s)
 	if err != nil {
@@ -310,7 +331,7 @@ func (s *WSSession) Start() error {
 	)
 
 	for {
-		if s.isActive == false {
+		if s.IsActive() == false {
 			log.Infof("websocket: session_id: %s start task is finshed", s.ID())
 			return nil
 		}

@@ -6,9 +6,11 @@ import (
 	"hash/fnv"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/0x5487/prelude"
+	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
 )
 
@@ -27,7 +29,7 @@ type Manager struct {
 	hub             prelude.Huber
 	hostname        string
 	ctx             context.Context
-	isActive        bool
+	activeState     int32
 	mutex           sync.Mutex
 	buckets         []*Bucket
 	status          *Status
@@ -39,13 +41,16 @@ type Manager struct {
 func NewManager(hub prelude.Huber) *Manager {
 	hostname, _ := os.Hostname()
 
+	bucketCount, _ := config.Int32("app.bucket_count", 128)
+	commandCount, _ := config.Int32("app.bucket_command_count", 128)
+
 	m := &Manager{
 		hub:             hub,
 		hostname:        hostname,
 		ctx:             context.Background(),
-		buckets:         make([]*Bucket, 1024),
+		buckets:         make([]*Bucket, bucketCount),
 		status:          &Status{},
-		commandChan:     make(chan *prelude.Command, 1024),
+		commandChan:     make(chan *prelude.Command, commandCount),
 		commandStopChan: make(chan bool, 1),
 		mutex:           sync.Mutex{},
 	}
@@ -120,7 +125,7 @@ func (m *Manager) UpdateRouteInfo(session *WSSession) error {
 
 // Push 用來推播訊息到 client
 func (m *Manager) Push(sessionID string, command *prelude.Command) error {
-	if m.isActive == false {
+	if m.IsActive() == false {
 		log.Debug("websocket: manager can't accept more command because manager is shutting down or closed.")
 		return nil
 	}
@@ -130,7 +135,7 @@ func (m *Manager) Push(sessionID string, command *prelude.Command) error {
 
 // PushAll 廣播訊息到全部 gateway 有連線的 client
 func (m *Manager) PushAll(command *prelude.Command) error {
-	if m.isActive == false {
+	if m.IsActive() == false {
 		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
 		return nil
 	}
@@ -146,7 +151,7 @@ func (m *Manager) PushAll(command *prelude.Command) error {
 
 // AddCommandToHub 把 command 送到 hub 讓 consumer 可以讀取 device 傳送過來的 command
 func (m *Manager) AddCommandToHub(cmd *prelude.Command) error {
-	if m.isActive == false {
+	if m.IsActive() == false {
 		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
 		return nil
 	}
@@ -168,28 +173,41 @@ func (m *Manager) commandLoop() {
 				log.Str("path", cmd.Action).Error("websocket: fail to publish command to hub")
 			}
 
-			if m.isActive == false && len(m.commandChan) == 0 {
+			if m.IsActive() == false && len(m.commandChan) == 0 {
 				m.commandStopChan <- true
 			}
 		}
 	}
 }
 
+// IsActive reprsent active status of manager
+func (m *Manager) IsActive() bool {
+	if atomic.LoadInt32(&(m.activeState)) != 0 {
+		return true
+	}
+	return false
+}
+
+// SetActive update status of active
+func (m *Manager) SetActive(val bool) {
+	var i int32 = 0
+	if val {
+		i = 1
+	}
+	atomic.StoreInt32(&(m.activeState), int32(i))
+}
+
 // Start 代表開啟背景工作，例如把 command 送到 hub
 func (m *Manager) Start() error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.isActive = true
+	m.SetActive(true)
 	go m.commandLoop()
 	return nil
 }
 
 // Shutdown represent graceful shutdown manager
 func (m *Manager) Shutdown(ctx context.Context) error {
-	m.mutex.Lock()
-	m.isActive = false
+	m.SetActive(false)
 	m.ctx = ctx
-	m.mutex.Unlock()
 
 	stop := make(chan bool)
 	go func() {

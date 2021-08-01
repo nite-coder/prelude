@@ -34,6 +34,7 @@ github.com/mattn/go-isatty v0.0.12 h1:wuysRhFDzyxgEmMf5xjvJ2M9dZoWAXNNr5LSBS7uHX
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/minio/highwayhash v1.0.1 h1:dZ6IIu8Z14VlC0VpfKofAhCy74wu/Qb5gcn52yWoz/0=
 github.com/minio/highwayhash v1.0.1/go.mod h1:BQskDq+xkJ12lmlUUi7U0M5Swg3EWR+dLTk+kldvVxY=
+github.com/mitchellh/mapstructure v1.4.1 h1:CpVNEelQCZBooIPDn+AR3NpivK/TIKU8bDxdASFVQag=
 github.com/mitchellh/mapstructure v1.4.1/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/nats-io/jwt v1.2.2 h1:w3GMTO969dFg+UOKTmmyuu7IGdusK+7Ytlt//OYH/uU=
 github.com/nats-io/jwt v1.2.2/go.mod h1:/xX356yQA6LuXI9xWW7mZNpxgF2mBmGecH+Fj34sP5Q=
@@ -54,6 +55,8 @@ github.com/nite-coder/blackbear v0.0.0-20210728085259-fa49f7e9e5b4 h1:NnYRyI2wW1
 github.com/nite-coder/blackbear v0.0.0-20210728085259-fa49f7e9e5b4/go.mod h1:hsh4Uc9/udmbhU0LunSlX5g5xmaoc7iSUiHQmHE+SVg=
 github.com/nite-coder/blackbear v0.0.0-20210731044252-29406ea15ca4 h1:xvHsu8jDYPJmn7S85GoWSWJivnHNh+1rj7/m5EGufFE=
 github.com/nite-coder/blackbear v0.0.0-20210731044252-29406ea15ca4/go.mod h1:hsh4Uc9/udmbhU0LunSlX5g5xmaoc7iSUiHQmHE+SVg=
+github.com/nite-coder/blackbear v0.0.0-20210801040944-938ed6f721e9 h1:SBpQW6TlRVh6aUJJqAEiTsZd/4WTZC3zFtp48dbOvZI=
+github.com/nite-coder/blackbear v0.0.0-20210801040944-938ed6f721e9/go.mod h1:hsh4Uc9/udmbhU0LunSlX5g5xmaoc7iSUiHQmHE+SVg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

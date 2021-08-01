@@ -20,7 +20,7 @@ type Bucket struct {
 func NewBucket(ctx context.Context, id, workerCount int) *Bucket {
 	b := &Bucket{
 		id:      id,
-		jobChan: make(chan Job, 1000),
+		jobChan: make(chan Job, 128),
 	}
 	// create workers
 	for i := 0; i < workerCount; i++ {
