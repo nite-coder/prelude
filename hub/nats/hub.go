@@ -59,7 +59,7 @@ func (hub *Hub) QueueSubscribe(topic string) error {
 
 		h := hub.router.Find(topic)
 		c := prelude.NewContext(hub, &cmd)
-		err = h(c)
+		_ = h(c)
 	})
 
 	return err

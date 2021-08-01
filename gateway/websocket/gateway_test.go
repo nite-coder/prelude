@@ -25,8 +25,8 @@ func TestGateway(t *testing.T) {
 	router := prelude.NewRouter(hub)
 	router.AddRoute("hello", func(c *prelude.Context) error {
 		assert.Equal(t, "hello", c.Command.Action)
-		c.Set("token", "atoken")
-		c.Response("wow", []byte("done"))
+		_ = c.Set("token", "atoken")
+		_ = c.Response("wow", []byte("done"))
 		wg.Done()
 		return nil
 	})

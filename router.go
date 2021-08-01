@@ -94,7 +94,7 @@ func (r *Router) AddRoute(action string, handler HandlerFunc) {
 		return
 	}
 
-	r.hub.QueueSubscribe(action)
+	_ = r.hub.QueueSubscribe(action)
 }
 
 // Find returns http handler for specific path
@@ -112,7 +112,7 @@ func (r *Router) Find(path string) HandlerFunc {
 		childNode := currentNode.findChildByName(element)
 
 		if childNode == nil {
-			//return notFoundHandler
+			// return notFoundHandler
 			return nil
 		}
 
@@ -124,7 +124,7 @@ func (r *Router) Find(path string) HandlerFunc {
 		currentNode = childNode
 	}
 
-	//return notFoundHandler
+	// return notFoundHandler
 	return nil
 }
 

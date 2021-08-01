@@ -55,7 +55,7 @@ func NewManager(hub prelude.Huber) *Manager {
 		mutex:           sync.Mutex{},
 	}
 
-	// inital bucket setting
+	// initial bucket setting
 	for idx := range m.buckets {
 		m.buckets[idx] = NewBucket(m.ctx, idx, 32)
 	}
@@ -125,7 +125,7 @@ func (m *Manager) UpdateRouteInfo(session *WSSession) error {
 
 // Push 用來推播訊息到 client
 func (m *Manager) Push(sessionID string, command *prelude.Command) error {
-	if m.IsActive() == false {
+	if !m.IsActive() {
 		log.Debug("websocket: manager can't accept more command because manager is shutting down or closed.")
 		return nil
 	}
@@ -135,7 +135,7 @@ func (m *Manager) Push(sessionID string, command *prelude.Command) error {
 
 // PushAll 廣播訊息到全部 gateway 有連線的 client
 func (m *Manager) PushAll(command *prelude.Command) error {
-	if m.IsActive() == false {
+	if !m.IsActive() {
 		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
 		return nil
 	}
@@ -151,7 +151,7 @@ func (m *Manager) PushAll(command *prelude.Command) error {
 
 // AddCommandToHub 把 command 送到 hub 讓 consumer 可以讀取 device 傳送過來的 command
 func (m *Manager) AddCommandToHub(cmd *prelude.Command) error {
-	if m.IsActive() == false {
+	if !m.IsActive() {
 		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
 		return nil
 	}
@@ -166,26 +166,21 @@ func (m *Manager) AddCommandToHub(cmd *prelude.Command) error {
 
 func (m *Manager) commandLoop() {
 	for {
-		select {
-		case cmd := <-m.commandChan:
-			err := m.hub.Publish(cmd.Action, cmd)
-			if err != nil {
-				log.Str("path", cmd.Action).Error("websocket: fail to publish command to hub")
-			}
+		cmd := <-m.commandChan
+		err := m.hub.Publish(cmd.Action, cmd)
+		if err != nil {
+			log.Str("path", cmd.Action).Error("websocket: fail to publish command to hub")
+		}
 
-			if m.IsActive() == false && len(m.commandChan) == 0 {
-				m.commandStopChan <- true
-			}
+		if !m.IsActive() && len(m.commandChan) == 0 {
+			m.commandStopChan <- true
 		}
 	}
 }
 
 // IsActive reprsent active status of manager
 func (m *Manager) IsActive() bool {
-	if atomic.LoadInt32(&(m.activeState)) != 0 {
-		return true
-	}
-	return false
+	return atomic.LoadInt32(&(m.activeState)) != 0
 }
 
 // SetActive update status of active

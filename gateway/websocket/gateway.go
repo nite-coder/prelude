@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -48,7 +49,7 @@ func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 		// service connections
 		log.Infof("websocket: Listening and serving HTTP on %s\n", bind)
 		err := s.Run(bind)
-		if err == http.ErrServerClosed {
+		if errors.Is(err, http.ErrServerClosed) {
 			log.Infof("websocket: http server closed under request: %v", err)
 		} else {
 			log.Fatalf("websocket: http server closed unexpect: %v", err)
@@ -60,7 +61,7 @@ func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 	}()
 
 	stopChan := make(chan os.Signal, 1)
-	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGKILL, syscall.SIGHUP, syscall.SIGTERM)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 	<-stopChan
 	log.Info("websocket: shutting down server...")
 

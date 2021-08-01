@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -89,10 +90,7 @@ func (s *WSSession) Metadata() map[string]interface{} {
 
 // IsActive reprsent active status of manager
 func (s *WSSession) IsActive() bool {
-	if atomic.LoadInt32(&(s.activeState)) != 0 {
-		return true
-	}
-	return false
+	return atomic.LoadInt32(&(s.activeState)) != 0
 }
 
 // SetActive update status of active
@@ -125,7 +123,7 @@ func (s *WSSession) readLoop() {
 	)
 
 	for {
-		if s.IsActive() == false {
+		if !s.IsActive() {
 			log.Debugf("websocket: session id %s readLoop is finished", s.ID())
 			return
 		}
@@ -143,9 +141,7 @@ func (s *WSSession) readLoop() {
 			MsgData: msgData,
 		}
 
-		select {
-		case s.inChan <- message:
-		}
+		s.inChan <- message
 	}
 }
 
@@ -161,15 +157,14 @@ func (s *WSSession) writeLoop() {
 	)
 
 	for {
-		if s.IsActive() == false {
+		if !s.IsActive() {
 			log.Debugf("websocket: session id %s writeLoop is finished", s.ID())
 			return
 		}
 		select {
 		case message = <-s.outChan:
 			if err = s.socket.WriteMessage(message.MsgType, message.MsgData); err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") ||
-					err == websocket.ErrCloseSent {
+				if strings.Contains(err.Error(), "use of closed network connection") || errors.Is(err, websocket.ErrCloseSent) {
 					log.Err(err).Debug("websocket: wrtieLoop error")
 				} else {
 					log.Err(err).Error("websocket: wrtieLoop error")
@@ -178,8 +173,7 @@ func (s *WSSession) writeLoop() {
 			}
 		case <-pingTicker.C:
 			if err := s.socket.WriteMessage(websocket.PingMessage, nil); err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") ||
-					err == websocket.ErrCloseSent {
+				if strings.Contains(err.Error(), "use of closed network connection") || errors.Is(err, websocket.ErrCloseSent) {
 					log.Err(err).Debug("websocket: wrtieLoop ping error")
 				} else {
 					log.Err(err).Warn("websocket: wrtieLoop ping error")
@@ -192,7 +186,7 @@ func (s *WSSession) writeLoop() {
 
 func (s *WSSession) commandLoop() {
 	for {
-		if s.IsActive() == false {
+		if !s.IsActive() {
 			log.Debugf("websocket: session id %s commandLoop is finished", s.ID())
 			return
 		}
@@ -214,7 +208,7 @@ func (s *WSSession) commandLoop() {
 		// case <-timer:
 		// 	//log.Debugf("command chan length: %d", len(s.commandChan))
 		// 	if len(commands) > 0 {
-		// 		buf, err := jsoner.Marshal(commands)
+		// 		buf, err := json.Marshal(commands)
 		// 		commands = []*gateway.Command{}
 		// 		if err != nil {
 		// 			log.Errorf("websocket: command marshal failed: %v", err)
@@ -232,7 +226,7 @@ func (s *WSSession) updateRouteLoop() {
 	log.Debug("websocket: updateRouteLoop is started")
 
 	for range timer.C {
-		if s.IsActive() == false {
+		if !s.IsActive() {
 			log.Debugf("websocket: updateRouteLoop is finished")
 			return
 		}
@@ -244,10 +238,8 @@ func (s *WSSession) updateRouteLoop() {
 }
 
 func (s *WSSession) readMessage() *WSMessage {
-	select {
-	case message := <-s.inChan:
-		return message
-	}
+	message := <-s.inChan
+	return message
 }
 
 func (s *WSSession) sendMessage(msg *WSMessage) {
@@ -331,7 +323,7 @@ func (s *WSSession) Start() error {
 	)
 
 	for {
-		if s.IsActive() == false {
+		if !s.IsActive() {
 			log.Infof("websocket: session_id: %s start task is finshed", s.ID())
 			return nil
 		}
