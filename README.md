@@ -2,11 +2,12 @@
 A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `chatroom`, `online game`, `IM instant messaging` 
 
 ## Feature
-1. Support stand-alone and distributed architecture 
+1. distributed architecture and can be scale out 
 1. `websocket` is supported (`TCP`, `MQTT` maybe later)
 1. Golang style
 
 ## Roadmap
+1. support stand-alone architecture via channel
 1. different encoding format, such as `PROTOBUF`, `JSON`
 1. support middleware chain
 
@@ -24,17 +25,12 @@ import (
 )
 
 func main() {
-	// use console handler to log all level logs
-	logger := log.New()
-	clog := console.New()
-	logger.AddHandler(clog, log.GetLevelsFromMinLevel("error")...)
-	log.SetLogger(logger)
-	defer log.Flush()
-
 	opts := hubNATS.HubOptions{
 		URL:   "nats://nats:4222",
 		Group: "gateway",
 	}
+
+  // we use nats as mq
 	hub, err := hubNATS.NewNatsHub(opts)
 	if err != nil {
 		panic(err)
