@@ -16,6 +16,10 @@ func createCommand(buf []byte) (*prelude.Command, error) {
 		return nil, err
 	}
 
+	if command.Action == "" {
+		return nil, prelude.ErrInvalidCommand
+	}
+
 	if command.RequestID == "" {
 		command.RequestID = uuid.NewString()
 	}

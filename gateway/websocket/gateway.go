@@ -26,6 +26,16 @@ func NewGateway() prelude.Gatewayer {
 }
 
 func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
+	// Increase resources limitations
+	var rLimit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		return err
+	}
+	rLimit.Cur = rLimit.Max
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		return err
+	}
+
 	g.manager = NewManager(hub)
 
 	s := web.NewServer()

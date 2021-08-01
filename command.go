@@ -1,9 +1,15 @@
 package prelude
 
+import "errors"
+
 type CommandType int32
 
 const (
 	CommandTypeMetadata = 1
+)
+
+var (
+	ErrInvalidCommand = errors.New("command format is invalid")
 )
 
 type Command struct {

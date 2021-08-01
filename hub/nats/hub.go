@@ -5,6 +5,7 @@ import (
 
 	"github.com/0x5487/prelude"
 	natsClient "github.com/nats-io/nats.go"
+	"github.com/nite-coder/blackbear/pkg/log"
 )
 
 type Hub struct {
@@ -46,7 +47,17 @@ func (hub *Hub) Publish(topic string, command *prelude.Command) error {
 		return err
 	}
 
-	return hub.conn.Publish(topic, b)
+	if command.Action == "" {
+		return prelude.ErrInvalidCommand
+	}
+
+	err = hub.conn.Publish(topic, b)
+	if err != nil {
+		log.Err(err).Str("data", string(b)).Error("hub: publish to nats failed")
+		return err
+	}
+
+	return nil
 }
 
 func (hub *Hub) QueueSubscribe(topic string) error {
@@ -63,8 +74,4 @@ func (hub *Hub) QueueSubscribe(topic string) error {
 	})
 
 	return err
-}
-
-func (hub *Hub) SendCommand(topic string, command *prelude.Command) error {
-	return nil
 }

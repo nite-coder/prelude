@@ -23,6 +23,7 @@ var (
 // RegisterRoute return a router which handles all topics
 func RegisterRoute(server *web.WebServer, handler *GatewayHTTPHandler) *web.WebServer {
 	server.Get("/", handler.wsEndpoint)
+	server.Get("/status", handler.statusEndpoint)
 	return server
 }
 
@@ -48,11 +49,15 @@ func (h *GatewayHTTPHandler) wsEndpoint(c *web.Context) error {
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	sessionID := uuid.NewString()
 	clientIP := c.ClientIP()
 	wsSession := NewWSSession(sessionID, clientIP, conn, h.manager)
 	return wsSession.Start()
+}
+
+func (h *GatewayHTTPHandler) statusEndpoint(c *web.Context) error {
+	return c.JSON(200, h.manager.status)
 }

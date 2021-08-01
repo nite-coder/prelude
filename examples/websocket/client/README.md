@@ -1,0 +1,1 @@
+./setup.sh 10000 2 app

@@ -4,7 +4,7 @@ import "sync/atomic"
 
 // Status 用來表示 Gateway 的狀態，例如: 連線人數
 type Status struct {
-	OnlinePeople int64
+	OnlinePeople int64 `json:"online_people"`
 }
 
 func (s *Status) increaseOnlinePeople() {

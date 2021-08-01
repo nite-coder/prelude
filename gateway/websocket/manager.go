@@ -91,10 +91,7 @@ func (m *Manager) DeleteSession(session *WSSession) error {
 	bucket := m.bucketBySessionID(session.ID())
 	bucket.deleteSession(session)
 	m.status.decreaseOnlinePeople()
-
-	cmd := prelude.NewCommand()
-
-	return m.AddCommandToHub(cmd)
+	return nil
 }
 
 // RouteInfo 代表 session 最後看見的時間
@@ -156,6 +153,10 @@ func (m *Manager) AddCommandToHub(cmd *prelude.Command) error {
 		return nil
 	}
 
+	if cmd.Action == "" {
+		return prelude.ErrInvalidCommand
+	}
+
 	select {
 	case m.commandChan <- cmd:
 	default:
@@ -169,7 +170,7 @@ func (m *Manager) commandLoop() {
 		cmd := <-m.commandChan
 		err := m.hub.Publish(cmd.Action, cmd)
 		if err != nil {
-			log.Str("path", cmd.Action).Error("websocket: fail to publish command to hub")
+			log.Str("action", cmd.Action).Error("websocket: fail to publish command to hub")
 		}
 
 		if !m.IsActive() && len(m.commandChan) == 0 {

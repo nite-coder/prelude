@@ -31,12 +31,12 @@ func NewBucket(ctx context.Context, id, workerCount int) *Bucket {
 
 func (b *Bucket) addSession(session *WSSession) {
 	b.sessions.Store(session.ID(), session)
-	log.Infof("service: session id %s was added to bucket id %d", session.ID(), b.id)
+	log.Str("session_id", session.ID()).Infof("service: session id %s was added to bucket id %d", session.ID(), b.id)
 }
 
 func (b *Bucket) deleteSession(session *WSSession) {
 	b.sessions.Delete(session.ID())
-	log.Infof("service: session id %s was deleted from bucket id %d", session.ID(), b.id)
+	log.Str("session_id", session.ID()).Infof("service: session id %s was deleted from bucket id %d", session.ID(), b.id)
 }
 
 func (b *Bucket) pushAll(command *prelude.Command) {
@@ -73,10 +73,10 @@ func (b *Bucket) push(sessionID string, command *prelude.Command) error {
 	session := b.session(sessionID)
 	if session == nil {
 		// session was close or not exist
-		log.Debugf("service: session_id: %s doesn't exist", sessionID)
+		log.Str("session_id", sessionID).Debugf("service: session_id: %s doesn't exist", sessionID)
 		return nil
 	}
-	log.Debugf("service: session_id: %s was found", sessionID)
+	log.Str("session_id", sessionID).Debugf("service: session_id: %s was found", sessionID)
 	return session.SendCommand(command)
 }
 

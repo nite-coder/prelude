@@ -26,22 +26,19 @@ func main() {
 	}
 
 	router := prelude.NewRouter(hub)
-	router.AddRoute("hello", func(c *prelude.Context) error {
-		cmd := c.Command
-		log.Str("action", cmd.Action).Str("data", string(cmd.Data)).Debugf("command received")
-		return nil
+	router.AddRoute("ping", func(c *prelude.Context) error {
+		return c.Response("pong", []byte("pong"))
 	})
 
-	router.AddRoute("events.routes_info", func(c *prelude.Context) error {
-		cmd := c.Command
-		log.Str("action", cmd.Action).Str("data", string(cmd.Data)).Debugf("command session route received")
+	router.AddRoute("hello", func(c *prelude.Context) error {
+		content := string(c.Command.Data)
+		log.Infof("message from client: %s", content)
 		return nil
 	})
 
 	websocketGateway := websocket.NewGateway()
 	err = websocketGateway.ListenAndServe(":10080", hub)
 	if err != nil {
-		log.Err(err).Error("main: websocket gateway shutdown failed")
+		log.Err(err).Error("main: websocket gateway start failed")
 	}
-
 }

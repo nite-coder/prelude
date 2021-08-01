@@ -19,9 +19,6 @@ const (
 	// Time allowed to write a message to the peer.
 	// writeWait = 10 * time.Second
 
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
-
 	// Send pings to peer with this period. Must be less than readWait.
 	pingPeriod = 20 * time.Second
 
@@ -57,7 +54,7 @@ type WSSession struct {
 func NewWSSession(id string, clientIP string, conn *websocket.Conn, manager *Manager) *WSSession {
 	inboundCount, _ := config.Int32("app.session_inbound_count", 128)
 	outboundCount, _ := config.Int32("app.session_outbound_count", 128)
-	commandCount, _ := config.Int32("app.session_outbound_count", 128)
+	commandCount, _ := config.Int32("app.session_command_count", 128)
 
 	return &WSSession{
 		mutex:       &sync.Mutex{},
@@ -107,11 +104,19 @@ func (s *WSSession) readLoop() {
 		close(s.inChan)
 		_ = s.Close()
 	}()
+
+	pongWaitSec, _ := config.Int("app.pong_wait_sec", 0)
+	pongWait := time.Duration(pongWaitSec) * time.Second
+	if pongWaitSec > 0 {
+		_ = s.socket.SetReadDeadline(time.Now().Add(pongWait))
+	}
+
 	s.socket.SetReadLimit(maxMessageSize)
-	_ = s.socket.SetReadDeadline(time.Now().Add(pongWait))
 	s.socket.SetPongHandler(func(string) error {
 		s.lastSeenAt = time.Now().UTC()
-		_ = s.socket.SetReadDeadline(time.Now().Add(pongWait)) // Reset the read deadline when a pong is received
+		if pongWaitSec > 0 {
+			_ = s.socket.SetReadDeadline(time.Now().Add(pongWait)) // Reset the read deadline when a pong is received
+		}
 		return nil
 	})
 
@@ -124,7 +129,7 @@ func (s *WSSession) readLoop() {
 
 	for {
 		if !s.IsActive() {
-			log.Debugf("websocket: session id %s readLoop is finished", s.ID())
+			log.Str("session_id", s.ID()).Debugf("websocket: session id %s readLoop is finished", s.ID())
 			return
 		}
 
@@ -158,25 +163,25 @@ func (s *WSSession) writeLoop() {
 
 	for {
 		if !s.IsActive() {
-			log.Debugf("websocket: session id %s writeLoop is finished", s.ID())
+			log.Str("session_id", s.ID()).Debugf("websocket: session id %s writeLoop is finished", s.ID())
 			return
 		}
 		select {
 		case message = <-s.outChan:
 			if err = s.socket.WriteMessage(message.MsgType, message.MsgData); err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") || errors.Is(err, websocket.ErrCloseSent) {
-					log.Err(err).Debug("websocket: wrtieLoop error")
+				if !(strings.Contains(err.Error(), "use of closed network connection") || errors.Is(err, websocket.ErrCloseSent)) {
+					log.Err(err).Warn("websocket: wrtieLoop error")
 				} else {
-					log.Err(err).Error("websocket: wrtieLoop error")
+					log.Err(err).Debug("websocket: wrtieLoop error")
 				}
 				return
 			}
 		case <-pingTicker.C:
 			if err := s.socket.WriteMessage(websocket.PingMessage, nil); err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") || errors.Is(err, websocket.ErrCloseSent) {
-					log.Err(err).Debug("websocket: wrtieLoop ping error")
-				} else {
+				if !(strings.Contains(err.Error(), "use of closed network connection") || errors.Is(err, websocket.ErrCloseSent)) {
 					log.Err(err).Warn("websocket: wrtieLoop ping error")
+				} else {
+					log.Err(err).Debug("websocket: wrtieLoop ping error")
 				}
 				return
 			}
@@ -187,7 +192,7 @@ func (s *WSSession) writeLoop() {
 func (s *WSSession) commandLoop() {
 	for {
 		if !s.IsActive() {
-			log.Debugf("websocket: session id %s commandLoop is finished", s.ID())
+			log.Str("session_id", s.ID()).Debugf("websocket: session id %s commandLoop is finished", s.ID())
 			return
 		}
 		select {
@@ -295,7 +300,11 @@ func (s *WSSession) Start() error {
 	go s.readLoop()
 	go s.writeLoop()
 	go s.commandLoop()
-	go s.updateRouteLoop()
+
+	isUpdateRoute, _ := config.Bool("app.session_update_route", false)
+	if isUpdateRoute {
+		go s.updateRouteLoop()
+	}
 
 	router := s.manager.hub.Router()
 	topic := fmt.Sprintf("s.%s", s.ID())
@@ -324,12 +333,11 @@ func (s *WSSession) Start() error {
 
 	for {
 		if !s.IsActive() {
-			log.Infof("websocket: session_id: %s start task is finshed", s.ID())
+			log.Str("session_id", s.ID()).Infof("websocket: session_id: %s start task is finshed", s.ID())
 			return nil
 		}
 
 		message = s.readMessage()
-
 		if message == nil {
 			continue // the channel might be closed
 		}
@@ -341,15 +349,14 @@ func (s *WSSession) Start() error {
 
 		commandReq, err = createCommand(message.MsgData)
 		if err != nil {
-			log.Err(err).Error("websocket: websocket message is invalid command")
+			log.Err(err).Str("data", string(message.MsgData)).Warn("websocket: websocket message is invalid command")
 			continue
 		}
 
 		commandReq.SenderID = s.ID()
 		commandReq.Metadata = s.metadata
 
-		log.Str("action", commandReq.Action).Str("session_id", s.ID()).Str("data", string(commandReq.Data)).Debugf("command sent")
-
+		log.Str("action", commandReq.Action).Str("session_id", s.ID()).Str("data", string(commandReq.Data)).Debugf("command was received from client")
 		_ = s.manager.AddCommandToHub(commandReq)
 	}
 }
