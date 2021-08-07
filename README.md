@@ -3,7 +3,8 @@ A simple lightweight network framework for Go.  It is useful for long connection
 
 ## Feature
 1. distributed architecture and can be scale out 
-1. `websocket` is supported (`TCP`, `MQTT` maybe later)
+1. `Websocket` is supported (`TCP`, `MQTT` maybe later)
+1. `Cloudevent` is used for event.
 1. Golang style
 
 ## Roadmap
@@ -13,6 +14,8 @@ A simple lightweight network framework for Go.  It is useful for long connection
 
 
 ## Example
+
+#### Server
 ```Go
 package main
 

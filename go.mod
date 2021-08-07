@@ -3,6 +3,7 @@ module github.com/0x5487/prelude
 go 1.14
 
 require (
+	github.com/cloudevents/sdk-go/v2 v2.4.1 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2

@@ -3,6 +3,8 @@ package prelude
 import (
 	"testing"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,8 +19,8 @@ func testRoute(t *testing.T, path string) {
 		return nil
 	})
 
-	cmd := Command{}
-	c := NewContext(nil, &cmd)
+	event := cloudevents.NewEvent()
+	c := NewContext(nil, event)
 	h := router.Find(path)
 	err := h(c)
 

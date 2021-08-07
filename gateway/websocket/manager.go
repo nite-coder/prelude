@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/0x5487/prelude"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/google/uuid"
 	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
 )
@@ -26,15 +28,15 @@ func FNV32a(s string) uint32 {
 
 // Manager 是用來控制 Gateway 的facade
 type Manager struct {
-	hub             prelude.Huber
-	hostname        string
-	ctx             context.Context
-	activeState     int32
-	mutex           sync.Mutex
-	buckets         []*Bucket
-	status          *Status
-	commandChan     chan *prelude.Command
-	commandStopChan chan bool
+	hub           prelude.Huber
+	hostname      string
+	ctx           context.Context
+	activeState   int32
+	mutex         sync.Mutex
+	buckets       []*Bucket
+	status        *Status
+	eventChan     chan cloudevents.Event
+	eventStopChan chan bool
 }
 
 // NewManager 用來產生一個新的 Manager 用來控制 Gateway
@@ -42,17 +44,17 @@ func NewManager(hub prelude.Huber) *Manager {
 	hostname, _ := os.Hostname()
 
 	bucketCount, _ := config.Int32("app.bucket_count", 128)
-	commandCount, _ := config.Int32("app.bucket_command_count", 128)
+	eventCount, _ := config.Int32("app.bucket_event_count", 128)
 
 	m := &Manager{
-		hub:             hub,
-		hostname:        hostname,
-		ctx:             context.Background(),
-		buckets:         make([]*Bucket, bucketCount),
-		status:          &Status{},
-		commandChan:     make(chan *prelude.Command, commandCount),
-		commandStopChan: make(chan bool, 1),
-		mutex:           sync.Mutex{},
+		hub:           hub,
+		hostname:      hostname,
+		ctx:           context.Background(),
+		buckets:       make([]*Bucket, bucketCount),
+		status:        &Status{},
+		eventChan:     make(chan cloudevents.Event, eventCount),
+		eventStopChan: make(chan bool, 1),
+		mutex:         sync.Mutex{},
 	}
 
 	// initial bucket setting
@@ -103,8 +105,10 @@ type RouteInfo struct {
 
 // UpdateRouteInfo 用來更新目前 session 所在的 gateway 主機和最後一次收到 pong 的時間 (lastSeenAt)
 func (m *Manager) UpdateRouteInfo(session *WSSession) error {
-	cmd := prelude.NewCommand()
-	cmd.Action = "events.routes_info"
+	event := cloudevents.NewEvent()
+	event.SetID(uuid.NewString())
+	event.SetSource(m.hostname)
+	event.SetType("events.routes_info")
 
 	body := RouteInfo{
 		SessionID:   session.ID(),
@@ -116,29 +120,33 @@ func (m *Manager) UpdateRouteInfo(session *WSSession) error {
 	if err != nil {
 		return err
 	}
-	cmd.Data = b
-	return m.AddCommandToHub(cmd)
+
+	err = event.SetData(cloudevents.ApplicationJSON, b)
+	if err != nil {
+		return err
+	}
+	return m.AddEventToHub(event)
 }
 
 // Push 用來推播訊息到 client
-func (m *Manager) Push(sessionID string, command *prelude.Command) error {
+func (m *Manager) Push(sessionID string, event cloudevents.Event) error {
 	if !m.IsActive() {
-		log.Debug("websocket: manager can't accept more command because manager is shutting down or closed.")
+		log.Debug("websocket: manager can't accept more event because manager is shutting down or closed.")
 		return nil
 	}
 	b := m.bucketBySessionID(sessionID)
-	return b.push(sessionID, command)
+	return b.push(sessionID, event)
 }
 
 // PushAll 廣播訊息到全部 gateway 有連線的 client
-func (m *Manager) PushAll(command *prelude.Command) error {
+func (m *Manager) PushAll(event cloudevents.Event) error {
 	if !m.IsActive() {
-		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
+		log.Debug("websocket: manager can't accept more events because manager is shutting down or closed.")
 		return nil
 	}
 	job := Job{
-		OP:      opPushAll,
-		Command: command,
+		OP:    opPushAll,
+		Event: event,
 	}
 	for _, bucket := range m.buckets {
 		bucket.jobChan <- job
@@ -146,35 +154,31 @@ func (m *Manager) PushAll(command *prelude.Command) error {
 	return nil
 }
 
-// AddCommandToHub 把 command 送到 hub 讓 consumer 可以讀取 device 傳送過來的 command
-func (m *Manager) AddCommandToHub(cmd *prelude.Command) error {
+// AddEventToHub 把 event 送到 hub 讓 consumer 可以讀取 device 傳送過來的 event
+func (m *Manager) AddEventToHub(event cloudevents.Event) error {
 	if !m.IsActive() {
-		log.Debug("websocket: manager can't accept more commands because manager is shutting down or closed.")
+		log.Debug("websocket: manager can't accept more events because manager is shutting down or closed.")
 		return nil
 	}
 
-	if cmd.Action == "" {
-		return prelude.ErrInvalidCommand
-	}
-
 	select {
-	case m.commandChan <- cmd:
+	case m.eventChan <- event:
 	default:
 	}
 
 	return nil
 }
 
-func (m *Manager) commandLoop() {
+func (m *Manager) eventLoop() {
 	for {
-		cmd := <-m.commandChan
-		err := m.hub.Publish(cmd.Action, cmd)
+		event := <-m.eventChan
+		err := m.hub.Publish(event.Type(), event)
 		if err != nil {
-			log.Str("action", cmd.Action).Error("websocket: fail to publish command to hub")
+			log.Str("action", event.Type()).Error("websocket: fail to publish event to hub")
 		}
 
-		if !m.IsActive() && len(m.commandChan) == 0 {
-			m.commandStopChan <- true
+		if !m.IsActive() && len(m.eventChan) == 0 {
+			m.eventStopChan <- true
 		}
 	}
 }
@@ -193,10 +197,10 @@ func (m *Manager) SetActive(val bool) {
 	atomic.StoreInt32(&(m.activeState), int32(i))
 }
 
-// Start 代表開啟背景工作，例如把 command 送到 hub
+// Start 代表開啟背景工作，例如把 event 送到 hub
 func (m *Manager) Start() error {
 	m.SetActive(true)
-	go m.commandLoop()
+	go m.eventLoop()
 	return nil
 }
 
@@ -207,9 +211,9 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 
 	stop := make(chan bool)
 	go func() {
-		// wait to process all commands
-		<-m.commandStopChan
-		close(m.commandChan)
+		// wait to process all events
+		<-m.eventStopChan
+		close(m.eventChan)
 		stop <- true
 	}()
 

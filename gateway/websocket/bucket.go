@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/0x5487/prelude"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/nite-coder/blackbear/pkg/log"
 )
 
@@ -39,7 +39,7 @@ func (b *Bucket) deleteSession(session *WSSession) {
 	log.Str("session_id", session.ID()).Infof("service: session id %s was deleted from bucket id %d", session.ID(), b.id)
 }
 
-func (b *Bucket) pushAll(command *prelude.Command) {
+func (b *Bucket) pushAll(event cloudevents.Event) {
 	var (
 		session *WSSession
 		ok      bool
@@ -48,7 +48,7 @@ func (b *Bucket) pushAll(command *prelude.Command) {
 	b.sessions.Range(func(key, value interface{}) bool {
 		session, ok = value.(*WSSession)
 		if ok {
-			msg, err := toWSMessage(command)
+			msg, err := toWSMessage(event)
 			if err != nil {
 				return true
 			}
@@ -69,7 +69,7 @@ func (b *Bucket) session(sessionID string) *WSSession {
 	return nil
 }
 
-func (b *Bucket) push(sessionID string, command *prelude.Command) error {
+func (b *Bucket) push(sessionID string, event cloudevents.Event) error {
 	session := b.session(sessionID)
 	if session == nil {
 		// session was close or not exist
@@ -77,7 +77,7 @@ func (b *Bucket) push(sessionID string, command *prelude.Command) error {
 		return nil
 	}
 	log.Str("session_id", sessionID).Debugf("service: session_id: %s was found", sessionID)
-	return session.SendCommand(command)
+	return session.SendEvent(event)
 }
 
 func (b *Bucket) count() int {
@@ -99,9 +99,9 @@ func (b *Bucket) doJob(ctx context.Context) {
 		case job := <-b.jobChan:
 			switch job.OP {
 			case opPush:
-				_ = b.push(job.SessionID, job.Command)
+				_ = b.push(job.SessionID, job.Event)
 			case opPushAll:
-				b.pushAll(job.Command)
+				b.pushAll(job.Event)
 			}
 		}
 	}

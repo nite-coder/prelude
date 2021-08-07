@@ -3,25 +3,25 @@ package prelude
 import (
 	"encoding/json"
 	"fmt"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/google/uuid"
 )
 
 type Context struct {
-	hub     Huber
-	Command *Command
+	hub   Huber
+	Event cloudevents.Event
 }
 
-func NewContext(hub Huber, cmd *Command) *Context {
+func NewContext(hub Huber, event cloudevents.Event) *Context {
 	return &Context{
-		hub:     hub,
-		Command: cmd,
+		hub:   hub,
+		Event: event,
 	}
 }
 
 func (c *Context) Get(key string) interface{} {
-	if c.Command.Metadata == nil {
-		return nil
-	}
-	return c.Command.Metadata[key]
+	return c.Event.Extensions()[key]
 }
 
 func (c *Context) Set(key string, val interface{}) error {
@@ -35,16 +35,7 @@ func (c *Context) Set(key string, val interface{}) error {
 		return err
 	}
 
-	cmd := Command{
-		SenderID:  c.Command.SenderID,
-		RequestID: c.Command.RequestID,
-		Action:    "metadata.add",
-		Type:      CommandTypeMetadata,
-		Data:      data,
-	}
-
-	topic := fmt.Sprintf("s.%s", c.Command.SenderID)
-	return c.hub.Publish(topic, &cmd)
+	return c.Response("metadata.add", data)
 }
 
 func (c *Context) WriteBytes(name string) string {
@@ -52,7 +43,7 @@ func (c *Context) WriteBytes(name string) string {
 }
 
 func (c *Context) BindJSON(obj interface{}) error {
-	err := json.Unmarshal(c.Command.Data, obj)
+	err := json.Unmarshal(c.Event.Data(), obj)
 	if err != nil {
 		return err
 	}
@@ -60,7 +51,7 @@ func (c *Context) BindJSON(obj interface{}) error {
 }
 
 func (c *Context) JSON(obj interface{}) error {
-	err := json.Unmarshal(c.Command.Data, obj)
+	err := json.Unmarshal(c.Event.Data(), obj)
 	if err != nil {
 		return err
 	}
@@ -68,13 +59,21 @@ func (c *Context) JSON(obj interface{}) error {
 }
 
 func (c *Context) Response(action string, data []byte) error {
-	cmd := Command{
-		SenderID:  c.Command.SenderID,
-		RequestID: c.Command.RequestID,
-		Action:    action,
-		Data:      data,
+	event := cloudevents.NewEvent()
+	event.SetID(uuid.NewString())
+	event.SetSource(c.hub.Router().name)
+	event.SetType(action)
+	err := event.SetData(cloudevents.ApplicationJSON, data)
+	if err != nil {
+		return err
 	}
 
-	topic := fmt.Sprintf("s.%s", c.Command.SenderID)
-	return c.hub.Publish(topic, &cmd)
+	err = event.Validate()
+	if err != nil {
+		return err
+	}
+
+	sessionID := c.Event.Extensions()["sessionid"]
+	topic := fmt.Sprintf("s.%s", sessionID)
+	return c.hub.Publish(topic, event)
 }

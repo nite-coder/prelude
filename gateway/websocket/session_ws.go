@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/0x5487/prelude"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/gorilla/websocket"
 	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
@@ -21,9 +22,6 @@ const (
 
 	// Send pings to peer with this period. Must be less than readWait.
 	pingPeriod = 20 * time.Second
-
-	// Maximum message size allowed from peer.
-	maxMessageSize = 2048
 )
 
 // WSMessage 代表 websocket 底層的 message
@@ -40,32 +38,32 @@ type WSSession struct {
 	manager     *Manager
 	clientIP    string
 
-	id          string
-	metadata    map[string]interface{}
-	socket      *websocket.Conn
-	rooms       sync.Map
-	roomID      string // member play chatroom and use the roomID
-	inChan      chan *WSMessage
-	outChan     chan *WSMessage
-	commandChan chan *prelude.Command
+	id        string
+	metadata  map[string]interface{}
+	socket    *websocket.Conn
+	rooms     sync.Map
+	roomID    string // member play chatroom and use the roomID
+	inChan    chan *WSMessage
+	outChan   chan *WSMessage
+	eventChan chan cloudevents.Event
 }
 
 // NewWSSession 產生一個新的 websocket session
 func NewWSSession(id string, clientIP string, conn *websocket.Conn, manager *Manager) *WSSession {
 	inboundCount, _ := config.Int32("app.session_inbound_count", 128)
 	outboundCount, _ := config.Int32("app.session_outbound_count", 128)
-	commandCount, _ := config.Int32("app.session_command_count", 128)
+	eventCount, _ := config.Int32("app.session_event_count", 128)
 
 	return &WSSession{
-		manager:     manager,
-		lastSeenAt:  time.Now().UTC(),
-		id:          id,
-		socket:      conn,
-		inChan:      make(chan *WSMessage, inboundCount),
-		outChan:     make(chan *WSMessage, outboundCount),
-		commandChan: make(chan *prelude.Command, commandCount),
-		clientIP:    clientIP,
-		metadata:    make(map[string]interface{}),
+		manager:    manager,
+		lastSeenAt: time.Now().UTC(),
+		id:         id,
+		socket:     conn,
+		inChan:     make(chan *WSMessage, inboundCount),
+		outChan:    make(chan *WSMessage, outboundCount),
+		eventChan:  make(chan cloudevents.Event, eventCount),
+		clientIP:   clientIP,
+		metadata:   make(map[string]interface{}),
 	}
 }
 
@@ -109,7 +107,12 @@ func (s *WSSession) readLoop() {
 		_ = s.socket.SetReadDeadline(time.Now().Add(pongWait))
 	}
 
-	s.socket.SetReadLimit(maxMessageSize)
+	// Maximum message size allowed from peer.
+	maxMessageSizeByte, _ := config.Int64("app.max_message_size_byte", 0)
+	if maxMessageSizeByte > 0 {
+		s.socket.SetReadLimit(maxMessageSizeByte)
+	}
+
 	s.socket.SetPongHandler(func(string) error {
 		s.lastSeenAt = time.Now().UTC()
 		if pongWaitSec > 0 {
@@ -186,26 +189,24 @@ func (s *WSSession) writeLoop() {
 	}
 }
 
-func (s *WSSession) commandLoop() {
+func (s *WSSession) eventLoop() {
 	for {
 		if !s.IsActive() {
-			log.Str("session_id", s.ID()).Debugf("websocket: session id %s commandLoop is finished", s.ID())
+			log.Str("session_id", s.ID()).Debugf("websocket: session id %s eventLoop is finished", s.ID())
 			return
 		}
 		select {
-		case cmd := <-s.commandChan:
-			if cmd != nil {
-				// 目前先把 command aggreation 的機制移除，所以不會有 Queue 一秒的問題
-				commands := []*prelude.Command{}
-				commands = append(commands, cmd)
-				buf, err := json.Marshal(commands)
-				if err != nil {
-					log.Errorf("websocket: command marshal failed: %v", err)
-					continue
-				}
-				message := &WSMessage{websocket.TextMessage, buf}
-				s.sendMessage(message)
+		case event := <-s.eventChan:
+			// 目前先把 event aggreation 的機制移除，所以不會有 Queue 一秒的問題
+			events := []cloudevents.Event{}
+			events = append(events, event)
+			buf, err := json.Marshal(events)
+			if err != nil {
+				log.Errorf("websocket: event marshal failed: %v", err)
+				continue
 			}
+			message := &WSMessage{websocket.TextMessage, buf}
+			s.sendMessage(message)
 		}
 		// case <-timer:
 		// 	//log.Debugf("command chan length: %d", len(s.commandChan))
@@ -251,16 +252,16 @@ func (s *WSSession) sendMessage(msg *WSMessage) {
 	}
 }
 
-// SendCommand 可以傳送 command 訊息給 client (設備)
-func (s *WSSession) SendCommand(cmd *prelude.Command) error {
-	_, err := toWSMessage(cmd)
+// SendEvent 可以傳送 event 訊息給 client (設備)
+func (s *WSSession) SendEvent(event cloudevents.Event) error {
+	_, err := toWSMessage(event)
 	if err != nil {
-		log.Err(err).Error("websocket: command to message fail")
+		log.Err(err).Error("websocket: event to webscoket message fail")
 		return err
 	}
 
 	select {
-	case s.commandChan <- cmd:
+	case s.eventChan <- event:
 	default:
 	}
 
@@ -287,7 +288,7 @@ func (s *WSSession) Start() error {
 	defer func() {
 		close(s.inChan)
 		close(s.outChan)
-		close(s.commandChan)
+		close(s.eventChan)
 		_ = s.Close()
 	}()
 
@@ -300,7 +301,7 @@ func (s *WSSession) Start() error {
 
 	go s.readLoop()
 	go s.writeLoop()
-	go s.commandLoop()
+	go s.eventLoop()
 
 	isUpdateRoute, _ := config.Bool("app.session_update_route", false)
 	if isUpdateRoute {
@@ -310,26 +311,23 @@ func (s *WSSession) Start() error {
 	router := s.manager.hub.Router()
 	topic := fmt.Sprintf("s.%s", s.ID())
 	router.AddRoute(topic, func(c *prelude.Context) error {
-		if c.Command.Type == prelude.CommandTypeMetadata {
+
+		switch c.Event.Type() {
+		case "metadata.add":
 			item := prelude.Item{}
-			err := json.Unmarshal(c.Command.Data, &item)
+			err := json.Unmarshal(c.Event.Data(), &item)
 			if err != nil {
 				return err
 			}
-
-			switch c.Command.Action {
-			case "metadata.add":
-				s.metadata[item.Key] = item.Value
-				return nil
-			}
+			s.metadata[item.Key] = item.Value
+			return nil
 		}
 
-		return s.SendCommand(c.Command)
+		return s.SendEvent(c.Event)
 	})
 
 	var (
-		message    *WSMessage
-		commandReq *prelude.Command
+		message *WSMessage
 	)
 
 	for {
@@ -348,16 +346,34 @@ func (s *WSSession) Start() error {
 			continue
 		}
 
-		commandReq, err = createCommand(message.MsgData)
+		event := cloudevents.NewEvent()
+		err = json.Unmarshal(message.MsgData, &event)
 		if err != nil {
-			log.Err(err).Str("data", string(message.MsgData)).Warn("websocket: websocket message is invalid command")
+			log.Err(err).Str("data", string(message.MsgData)).Warn("websocket: websocket message is invalid.")
 			continue
 		}
 
-		commandReq.SenderID = s.ID()
-		commandReq.Metadata = s.metadata
+		err = event.Validate()
+		if err != nil {
+			log.Err(err).Str("data", string(message.MsgData)).Warn("websocket: event is invalid from client")
+			continue
+		}
 
-		log.Str("action", commandReq.Action).Str("session_id", s.ID()).Str("data", string(commandReq.Data)).Debugf("command was received from client")
-		_ = s.manager.AddCommandToHub(commandReq)
+		event.SetExtension("sessionid", s.ID())
+		for k, v := range s.metadata {
+			event.SetExtension(k, v)
+		}
+
+		log.Str("action", event.Type()).Str("session_id", s.ID()).Str("data", string(event.Data())).Debugf("event was received from client")
+		_ = s.manager.AddEventToHub(event)
 	}
+}
+
+func toWSMessage(event cloudevents.Event) (*WSMessage, error) {
+	buf, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+	msg := &WSMessage{websocket.TextMessage, buf}
+	return msg, nil
 }

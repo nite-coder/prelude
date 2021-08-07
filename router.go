@@ -6,6 +6,7 @@ import "strings"
 type HandlerFunc func(c *Context) error
 
 type Router struct {
+	name string
 	tree *tree
 	hub  Huber
 }
@@ -29,15 +30,17 @@ const (
 )
 
 // NewRouter function will create a new router instance
-func NewRouter(hub Huber) *Router {
+func NewRouter(name string, hub Huber) *Router {
 	r := newRouter()
 	r.hub = hub
+	r.name = name
 	hub.SetRouter(r)
 	return r
 }
 
 func newRouter() *Router {
 	r := Router{
+		name: "default",
 		tree: &tree{
 			rootNode: &node{
 				parent:    nil,

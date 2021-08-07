@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/0x5487/prelude"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	natsClient "github.com/nats-io/nats.go"
 	"github.com/nite-coder/blackbear/pkg/log"
 )
@@ -41,14 +42,15 @@ func (hub *Hub) SetRouter(router *prelude.Router) {
 	hub.router = router
 }
 
-func (hub *Hub) Publish(topic string, command *prelude.Command) error {
-	b, err := json.Marshal(command)
+func (hub *Hub) Publish(topic string, event cloudevents.Event) error {
+	b, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	if command.Action == "" {
-		return prelude.ErrInvalidCommand
+	err = event.Validate()
+	if err != nil {
+		return err
 	}
 
 	err = hub.conn.Publish(topic, b)
@@ -62,14 +64,15 @@ func (hub *Hub) Publish(topic string, command *prelude.Command) error {
 
 func (hub *Hub) QueueSubscribe(topic string) error {
 	_, err := hub.conn.QueueSubscribe(topic, hub.group, func(msg *natsClient.Msg) {
-		cmd := prelude.Command{}
-		err := json.Unmarshal(msg.Data, &cmd)
+		event := cloudevents.NewEvent()
+		err := json.Unmarshal(msg.Data, &event)
 		if err != nil {
+			log.Err(err).Warn("hub: json unmarshal failed.")
 			return
 		}
 
 		h := hub.router.Find(topic)
-		c := prelude.NewContext(hub, &cmd)
+		c := prelude.NewContext(hub, event)
 		_ = h(c)
 	})
 

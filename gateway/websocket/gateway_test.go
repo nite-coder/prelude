@@ -7,6 +7,8 @@ import (
 
 	"github.com/0x5487/prelude"
 	"github.com/0x5487/prelude/hub/nats"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,9 +24,9 @@ func TestGateway(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	router := prelude.NewRouter(hub)
+	router := prelude.NewRouter("prelude", hub)
 	router.AddRoute("hello", func(c *prelude.Context) error {
-		assert.Equal(t, "hello", c.Command.Action)
+		assert.Equal(t, "hello", c.Event.Type())
 		_ = c.Set("token", "atoken")
 		_ = c.Response("wow", []byte("done"))
 		wg.Done()
@@ -53,29 +55,32 @@ func TestGateway(t *testing.T) {
 	}
 	defer ws.Close()
 
-	// Send message to server, read response and check to see if it's what we expect.
-	sendCMD := prelude.Command{
-		Action: "hello",
-		Data:   []byte(`{"message":"hello world"}`),
-	}
+	sendEvent := cloudevents.NewEvent()
+	sendEvent.SetID(uuid.NewString())
+	sendEvent.SetSource("client")
+	sendEvent.SetType("hello")
+	data := []byte(`{"message":"hello world"}`)
+	_ = sendEvent.SetData(cloudevents.ApplicationJSON, data)
 
-	err = ws.WriteJSON(sendCMD)
+	err = ws.WriteJSON(sendEvent)
 	require.Nil(t, err)
 
-	revCMDs := []prelude.Command{}
+	revCMDs := []cloudevents.Event{}
 	err = ws.ReadJSON(&revCMDs)
 	require.Nil(t, err)
 
 	assert.Equal(t, 1, len(revCMDs))
 
-	revCMD := revCMDs[0]
-	assert.Equal(t, "wow", revCMD.Action)
-	assert.Equal(t, "done", string(revCMD.Data))
+	revEvent := revCMDs[0]
+	assert.Equal(t, "wow", revEvent.Type())
+	assert.Equal(t, "done", string(revEvent.Data()))
 
-	sendCMD = prelude.Command{
-		Action: "metadata.get",
-	}
-	err = ws.WriteJSON(sendCMD)
+	sendEvent = cloudevents.NewEvent()
+	sendEvent.SetID(uuid.NewString())
+	sendEvent.SetSource("client")
+	sendEvent.SetType("metadata.get")
+
+	err = ws.WriteJSON(sendEvent)
 	require.Nil(t, err)
 
 	wg.Wait()

@@ -9,7 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/0x5487/prelude"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -48,10 +49,12 @@ func main() {
 		tts = time.Millisecond * 5
 	}
 
-	sendCMD := prelude.Command{
-		Action: "hello",
-		Data:   []byte(`{"message":"hello world"}`),
-	}
+	sendEvent := cloudevents.NewEvent()
+	sendEvent.SetID(uuid.NewString())
+	sendEvent.SetSource("client")
+	sendEvent.SetType("hello")
+	data := []byte(`{"message":"hello world"}`)
+	sendEvent.SetData(cloudevents.ApplicationJSON, data)
 
 	for {
 		for i := 0; i < len(conns); i++ {
@@ -63,7 +66,7 @@ func main() {
 				fmt.Printf("Failed to receive pong: %v", err)
 			}
 
-			_ = conn.WriteJSON(sendCMD)
+			_ = conn.WriteJSON(sendEvent)
 		}
 	}
 }

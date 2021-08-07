@@ -1,6 +1,8 @@
 package websocket
 
-import "github.com/0x5487/prelude"
+import (
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+)
 
 const (
 	opPush    = 1
@@ -11,6 +13,6 @@ const (
 type Job struct {
 	OP        int
 	SessionID string
-	Command   *prelude.Command
+	Event     cloudevents.Event
 	WSMessage *WSMessage
 }

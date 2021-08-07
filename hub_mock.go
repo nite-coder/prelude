@@ -7,6 +7,7 @@ package prelude
 import (
 	reflect "reflect"
 
+	v2 "github.com/cloudevents/sdk-go/v2"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -34,17 +35,17 @@ func (m *MockHuber) EXPECT() *MockHuberMockRecorder {
 }
 
 // Publish mocks base method.
-func (m *MockHuber) Publish(topic string, command *Command) error {
+func (m *MockHuber) Publish(topic string, event v2.Event) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Publish", topic, command)
+	ret := m.ctrl.Call(m, "Publish", topic, event)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Publish indicates an expected call of Publish.
-func (mr *MockHuberMockRecorder) Publish(topic, command interface{}) *gomock.Call {
+func (mr *MockHuberMockRecorder) Publish(topic, event interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockHuber)(nil).Publish), topic, command)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockHuber)(nil).Publish), topic, event)
 }
 
 // QueueSubscribe mocks base method.
@@ -73,20 +74,6 @@ func (m *MockHuber) Router() *Router {
 func (mr *MockHuberMockRecorder) Router() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Router", reflect.TypeOf((*MockHuber)(nil).Router))
-}
-
-// SendCommand mocks base method.
-func (m *MockHuber) SendCommand(sessionID string, command *Command) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendCommand", sessionID, command)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SendCommand indicates an expected call of SendCommand.
-func (mr *MockHuberMockRecorder) SendCommand(sessionID, command interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCommand", reflect.TypeOf((*MockHuber)(nil).SendCommand), sessionID, command)
 }
 
 // SetRouter mocks base method.

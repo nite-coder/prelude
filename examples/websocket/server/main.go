@@ -4,6 +4,7 @@ import (
 	"github.com/0x5487/prelude"
 	"github.com/0x5487/prelude/gateway/websocket"
 	hubNATS "github.com/0x5487/prelude/hub/nats"
+	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
 	"github.com/nite-coder/blackbear/pkg/log/handler/console"
 )
@@ -12,7 +13,7 @@ func main() {
 	// use console handler to log all level logs
 	logger := log.New()
 	clog := console.New()
-	logger.AddHandler(clog, log.GetLevelsFromMinLevel("error")...)
+	logger.AddHandler(clog, log.GetLevelsFromMinLevel("info")...)
 	log.SetLogger(logger)
 	defer log.Flush()
 
@@ -25,13 +26,14 @@ func main() {
 		panic(err)
 	}
 
-	router := prelude.NewRouter(hub)
+	name, _ := config.String("app.name")
+	router := prelude.NewRouter(name, hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
 		return c.Response("pong", []byte("pong"))
 	})
 
 	router.AddRoute("hello", func(c *prelude.Context) error {
-		content := string(c.Command.Data)
+		content := string(c.Event.Data())
 		log.Infof("message from client: %s", content)
 		return nil
 	})
