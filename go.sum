@@ -67,6 +67,8 @@ github.com/nite-coder/blackbear v0.0.0-20210731044252-29406ea15ca4 h1:xvHsu8jDYP
 github.com/nite-coder/blackbear v0.0.0-20210731044252-29406ea15ca4/go.mod h1:hsh4Uc9/udmbhU0LunSlX5g5xmaoc7iSUiHQmHE+SVg=
 github.com/nite-coder/blackbear v0.0.0-20210801040944-938ed6f721e9 h1:SBpQW6TlRVh6aUJJqAEiTsZd/4WTZC3zFtp48dbOvZI=
 github.com/nite-coder/blackbear v0.0.0-20210801040944-938ed6f721e9/go.mod h1:hsh4Uc9/udmbhU0LunSlX5g5xmaoc7iSUiHQmHE+SVg=
+github.com/nite-coder/blackbear v0.0.0-20210807044950-b50cf6569670 h1:GstrykSXtvQarn4zTCTtd6HwHooY6pXbBcEMQn9d/kc=
+github.com/nite-coder/blackbear v0.0.0-20210807044950-b50cf6569670/go.mod h1:hsh4Uc9/udmbhU0LunSlX5g5xmaoc7iSUiHQmHE+SVg=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

@@ -1,10 +1,10 @@
 # prelude
-A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `chatroom`, `online game`, `IM instant messaging` 
+A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `chatroom`, `online game`, `instant messaging` 
 
 ## Feature
 1. distributed architecture and can be scale out 
 1. `Websocket` is supported (`TCP`, `MQTT` maybe later)
-1. `Cloudevent` is used for event.
+1. use the `CloudEvents 1.0 specification` as message format
 1. Golang style
 
 ## Roadmap

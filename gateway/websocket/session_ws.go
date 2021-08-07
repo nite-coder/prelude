@@ -101,8 +101,8 @@ func (s *WSSession) readLoop() {
 		_ = s.Close()
 	}()
 
-	pongWaitSec, _ := config.Int("app.pong_wait_sec", 0)
-	pongWait := time.Duration(pongWaitSec) * time.Second
+	pongWaitSec, _ := config.Duration("app.pong_wait_sec", 0)
+	pongWait := pongWaitSec * time.Second
 	if pongWaitSec > 0 {
 		_ = s.socket.SetReadDeadline(time.Now().Add(pongWait))
 	}
