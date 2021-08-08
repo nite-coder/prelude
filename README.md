@@ -3,6 +3,7 @@ A simple lightweight network framework for Go.  It is useful for long connection
 
 ## Feature
 1. distributed architecture and can be scale out 
+1. handles 1m connections
 1. `Websocket` is supported (`TCP`, `MQTT` maybe later)
 1. use the `CloudEvents 1.0 specification` as message format
 1. Golang style
@@ -11,29 +12,19 @@ A simple lightweight network framework for Go.  It is useful for long connection
 1. support stand-alone architecture via channel
 1. different encoding format, such as `PROTOBUF`, `JSON`
 1. support middleware chain
-
+1. Broadcast
 
 ## Example
 
 #### Server
 ```Go
-package main
-
-import (
-	"github.com/0x5487/prelude"
-	"github.com/0x5487/prelude/gateway/websocket"
-	hubNATS "github.com/0x5487/prelude/hub/nats"
-	"github.com/nite-coder/blackbear/pkg/log"
-	"github.com/nite-coder/blackbear/pkg/log/handler/console"
-)
-
 func main() {
 	opts := hubNATS.HubOptions{
 		URL:   "nats://nats:4222",
 		Group: "gateway",
 	}
 
-  // we use nats as mq
+    // we use nats as mq
 	hub, err := hubNATS.NewNatsHub(opts)
 	if err != nil {
 		panic(err)
@@ -41,13 +32,7 @@ func main() {
 
 	router := prelude.NewRouter(hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
-		return c.Response("pong", []byte("pong"))
-	})
-
-	router.AddRoute("hello", func(c *prelude.Context) error {
-		content := string(c.Command.Data)
-		log.Infof("message from client: %s", content)
-		return nil
+		return c.JSON("pong", "hello world")
 	})
 
 	websocketGateway := websocket.NewGateway()
@@ -59,3 +44,22 @@ func main() {
 
 ```
 
+#### Client
+```Go
+
+func main() {
+	ws, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:10085", nil)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	defer ws.Close()
+
+	pingEvent := cloudevents.NewEvent()
+	pingEvent.SetID(uuid.NewString())
+	pingEvent.SetSource("client")
+	pingEvent.SetType("ping")
+
+	ws.WriteJSON(sendEvent)
+}
+
+```
