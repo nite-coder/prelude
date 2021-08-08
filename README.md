@@ -1,5 +1,5 @@
 # prelude
-A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `chatroom`, `online game`, `instant messaging` 
+A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `Chatroom`, `Online Game`, `Instant Messaging` 
 
 ## Feature
 1. distributed architecture and can be scale out 
@@ -12,7 +12,7 @@ A simple lightweight network framework for Go.  It is useful for long connection
 1. support stand-alone architecture via channel
 1. different encoding format, such as `PROTOBUF`, `JSON`
 1. support middleware chain
-1. Broadcast
+
 
 ## Example
 
@@ -32,7 +32,7 @@ func main() {
 
 	router := prelude.NewRouter(hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
-		return c.JSON("pong", "hello world")
+		return c.JSON("pong", "hello world") // the event will send back to sender
 	})
 
 	websocketGateway := websocket.NewGateway()
@@ -48,7 +48,7 @@ func main() {
 ```Go
 
 func main() {
-	ws, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:10085", nil)
+	ws, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:10080", nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
