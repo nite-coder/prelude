@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/0x5487/prelude"
-	"github.com/0x5487/prelude/gateway/websocket"
-	hubNATS "github.com/0x5487/prelude/hub/nats"
 	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
 	"github.com/nite-coder/blackbear/pkg/log/handler/console"
+	"github.com/nite-coder/prelude"
+	"github.com/nite-coder/prelude/gateway/websocket"
+	hubNATS "github.com/nite-coder/prelude/hub/nats"
 )
 
 func main() {

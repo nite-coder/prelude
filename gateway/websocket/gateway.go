@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/0x5487/prelude"
 	"github.com/nite-coder/blackbear/pkg/log"
 	"github.com/nite-coder/blackbear/pkg/web"
 	"github.com/nite-coder/blackbear/pkg/web/middleware"
+	"github.com/nite-coder/prelude"
 )
 
 // Gateway handles all websocket connections between client and server

@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0x5487/prelude"
-	"github.com/0x5487/prelude/hub/nats"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/nite-coder/prelude"
+	"github.com/nite-coder/prelude/hub/nats"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

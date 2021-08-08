@@ -9,11 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/0x5487/prelude"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/gorilla/websocket"
 	"github.com/nite-coder/blackbear/pkg/config"
 	"github.com/nite-coder/blackbear/pkg/log"
+	"github.com/nite-coder/prelude"
 )
 
 const (

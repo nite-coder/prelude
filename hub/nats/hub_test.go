@@ -4,9 +4,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/0x5487/prelude"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
+	"github.com/nite-coder/prelude"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

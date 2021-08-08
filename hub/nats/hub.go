@@ -3,10 +3,10 @@ package nats
 import (
 	"encoding/json"
 
-	"github.com/0x5487/prelude"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	natsClient "github.com/nats-io/nats.go"
 	"github.com/nite-coder/blackbear/pkg/log"
+	"github.com/nite-coder/prelude"
 )
 
 type Hub struct {
