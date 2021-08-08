@@ -11,21 +11,15 @@ import (
 // Bucket 是水桶，用來加速查詢用
 type Bucket struct {
 	id       int
-	rooms    sync.Map
 	sessions sync.Map
-	jobChan  chan Job
 }
 
 // NewBucket 會生成一個新的 Bucket
 func NewBucket(ctx context.Context, id, workerCount int) *Bucket {
 	b := &Bucket{
-		id:      id,
-		jobChan: make(chan Job, 128),
+		id: id,
 	}
-	// create workers
-	for i := 0; i < workerCount; i++ {
-		go b.doJob(ctx)
-	}
+
 	return b
 }
 
@@ -87,22 +81,4 @@ func (b *Bucket) count() int {
 		return true
 	})
 	return length
-}
-
-// doJob function which will be executed by workers.
-func (b *Bucket) doJob(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Errorf("service: doJob is timeout: %v", ctx.Err())
-			break
-		case job := <-b.jobChan:
-			switch job.OP {
-			case opPush:
-				_ = b.push(job.SessionID, job.Event)
-			case opPushAll:
-				b.pushAll(job.Event)
-			}
-		}
-	}
 }

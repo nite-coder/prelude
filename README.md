@@ -32,7 +32,7 @@ func main() {
 	router := prelude.NewRouter(hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
 		// handle ping command here
-		return c.JSON("pong", "hello world") // the event will send back to sender
+		return c.JSON("pong", "hello world") // the event will send back to client
 	})
 
 	websocketGateway := websocket.NewGateway()

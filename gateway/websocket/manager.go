@@ -131,33 +131,17 @@ func (m *Manager) UpdateRouteInfo(session *WSSession) error {
 // Push 用來推播訊息到 client
 func (m *Manager) Push(sessionID string, event cloudevents.Event) error {
 	if !m.IsActive() {
-		log.Debug("websocket: manager can't accept more event because manager is shutting down or closed.")
+		log.Debug("websocket: manager can't accept more events because server is shutting down or closed.")
 		return nil
 	}
 	b := m.bucketBySessionID(sessionID)
 	return b.push(sessionID, event)
 }
 
-// PushAll 廣播訊息到全部 gateway 有連線的 client
-func (m *Manager) PushAll(event cloudevents.Event) error {
-	if !m.IsActive() {
-		log.Debug("websocket: manager can't accept more events because manager is shutting down or closed.")
-		return nil
-	}
-	job := Job{
-		OP:    opPushAll,
-		Event: event,
-	}
-	for _, bucket := range m.buckets {
-		bucket.jobChan <- job
-	}
-	return nil
-}
-
 // AddEventToHub 把 event 送到 hub 讓 consumer 可以讀取 device 傳送過來的 event
 func (m *Manager) AddEventToHub(event cloudevents.Event) error {
 	if !m.IsActive() {
-		log.Debug("websocket: manager can't accept more events because manager is shutting down or closed.")
+		log.Debug("websocket: manager can't accept more events because server is shutting down or closed.")
 		return nil
 	}
 

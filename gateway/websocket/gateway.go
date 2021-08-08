@@ -92,5 +92,5 @@ func (g *Gateway) ListenAndServe(bind string, hub prelude.Huber) error {
 }
 
 func (g *Gateway) Shutdown(ctx context.Context) error {
-	panic("not implemented") // TODO: Implement
+	return g.manager.Shutdown(ctx)
 }
