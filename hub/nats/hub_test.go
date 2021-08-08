@@ -27,31 +27,41 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 
 	router := prelude.NewRouter("prelude", hub)
 
-	sendEvent := cloudevents.NewEvent()
-	sendEvent.SetID(uuid.NewString())
-	sendEvent.SetSource("default")
-	sendEvent.SetType("sent")
-	data := []byte(`{"message":"hello world"}`)
-	_ = sendEvent.SetData(cloudevents.ApplicationJSON, data)
-	sendEvent.SetExtension("sessionid", "abc123")
+	sessionID := "my_session_id"
 
-	router.AddRoute("s.abc123", func(c *prelude.Context) error {
+	router.AddRoute("s."+sessionID, func(c *prelude.Context) error {
+		defer func() {
+			wg.Done()
+		}()
+
 		assert.Equal(t, "wow", string(c.Event.Type()))
-		assert.Equal(t, "done", string(c.Event.Data()))
-		wg.Done()
+		assert.Equal(t, "\"done\"", string(c.Event.Data()))
+
 		return nil
 	})
 
 	router.AddRoute("sent", func(c *prelude.Context) error {
+		defer func() {
+			wg.Done()
+		}()
+
 		item := Item{}
 		err := c.BindJSON(&item)
 		require.NoError(t, err)
 
 		assert.Equal(t, "hello world", item.Message)
-		assert.Equal(t, sendEvent.Extensions()["sessionid"], c.Event.Extensions()["sessionid"])
-		wg.Done()
-		return c.Response("wow", []byte("done"))
+		assert.Equal(t, sessionID, c.Event.Extensions()[prelude.SessionID])
+
+		return c.JSON("wow", "done")
 	})
+
+	sendEvent := cloudevents.NewEvent()
+	sendEvent.SetID(uuid.NewString())
+	sendEvent.SetSource("client")
+	sendEvent.SetType("sent")
+	data := []byte(`{"message":"hello world"}`)
+	_ = sendEvent.SetData(cloudevents.ApplicationJSON, data)
+	sendEvent.SetExtension(prelude.SessionID, sessionID)
 
 	err = hub.Publish(sendEvent.Type(), sendEvent)
 	require.Nil(t, err)

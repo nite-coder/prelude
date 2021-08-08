@@ -29,7 +29,7 @@ func main() {
 	name, _ := config.String("app.name")
 	router := prelude.NewRouter(name, hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
-		return c.Response("pong", []byte("pong"))
+		return c.JSON("pong", nil)
 	})
 
 	router.AddRoute("hello", func(c *prelude.Context) error {

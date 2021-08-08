@@ -359,7 +359,7 @@ func (s *WSSession) Start() error {
 			continue
 		}
 
-		event.SetExtension("sessionid", s.ID())
+		event.SetExtension(prelude.SessionID, s.ID())
 		for k, v := range s.metadata {
 			event.SetExtension(k, v)
 		}

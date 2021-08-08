@@ -25,18 +25,25 @@ func TestGateway(t *testing.T) {
 	wg.Add(2)
 
 	router := prelude.NewRouter("prelude", hub)
+
 	router.AddRoute("hello", func(c *prelude.Context) error {
+		defer func() {
+			wg.Done()
+		}()
+
 		assert.Equal(t, "hello", c.Event.Type())
 		_ = c.Set("token", "atoken")
-		_ = c.Response("wow", []byte("done"))
-		wg.Done()
-		return nil
+		return c.JSON("wow", "done")
 	})
 
 	router.AddRoute("metadata.get", func(c *prelude.Context) error {
+		defer func() {
+			wg.Done()
+		}()
+
 		val := c.Get("token")
 		assert.Equal(t, "atoken", val)
-		wg.Done()
+
 		return nil
 	})
 
@@ -73,7 +80,7 @@ func TestGateway(t *testing.T) {
 
 	revEvent := revCMDs[0]
 	assert.Equal(t, "wow", revEvent.Type())
-	assert.Equal(t, "done", string(revEvent.Data()))
+	assert.Equal(t, "\"done\"", string(revEvent.Data()))
 
 	sendEvent = cloudevents.NewEvent()
 	sendEvent.SetID(uuid.NewString())
