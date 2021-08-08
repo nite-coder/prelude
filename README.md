@@ -12,6 +12,11 @@ A simple lightweight network framework for Go.  It is useful for long connection
 ## Roadmap
 1. support middleware chain
 
+## Installation
+
+```
+go get -u github.com/nite-coder/prelude
+```
 
 ## Example
 
@@ -59,7 +64,7 @@ func main() {
 	pingEvent.SetSource("client")
 	pingEvent.SetType("ping")
 
-	ws.WriteJSON(sendEvent)
+	ws.WriteJSON(pingEvent)
 }
 
 ```
