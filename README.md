@@ -1,16 +1,15 @@
-# prelude
+# Prelude
 A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `Chatroom`, `Online Game`, `Instant Messaging` 
 
 ## Feature
-1. distributed architecture and can be scale out 
-1. handles 1m connections
 1. `Websocket` is supported (`TCP`, `MQTT` maybe later)
-1. use the `CloudEvents 1.0 specification` as message format
+1. distributed architecture and can be scale out 
+1. handle 1 million connections
+1. use the `CloudEvents 1.0 specification` as event format
+1. support `JSON`, `XML`, `ProtoBuf` as content type
 1. Golang style
 
 ## Roadmap
-1. support stand-alone architecture via channel
-1. different encoding format, such as `PROTOBUF`, `JSON`
 1. support middleware chain
 
 
@@ -32,6 +31,7 @@ func main() {
 
 	router := prelude.NewRouter(hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
+		// handle ping command here
 		return c.JSON("pong", "hello world") // the event will send back to sender
 	})
 

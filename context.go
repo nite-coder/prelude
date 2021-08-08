@@ -2,6 +2,7 @@ package prelude
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"time"
@@ -9,6 +10,7 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"github.com/nite-coder/blackbear/pkg/cast"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -52,7 +54,7 @@ func (c *Context) BindJSON(obj interface{}) error {
 	return nil
 }
 
-func (c *Context) Write(eventType string, bytes []byte, sessionIDs ...string) error {
+func (c *Context) Write(eventType string, contentType string, bytes []byte, sessionIDs ...string) error {
 	if eventType == "" {
 		return ErrInvalidEventType
 	}
@@ -64,7 +66,7 @@ func (c *Context) Write(eventType string, bytes []byte, sessionIDs ...string) er
 	event.SetType(eventType)
 
 	if len(bytes) > 0 {
-		err := event.SetData(cloudevents.ApplicationJSON, bytes)
+		err := event.SetData(contentType, bytes)
 		if err != nil {
 			return err
 		}
@@ -95,5 +97,21 @@ func (c *Context) JSON(eventType string, obj interface{}, sessionIDs ...string) 
 	if err != nil {
 		return err
 	}
-	return c.Write(eventType, data)
+	return c.Write(eventType, cloudevents.ApplicationJSON, data)
+}
+
+func (c *Context) XML(eventType string, obj interface{}, sessionIDs ...string) error {
+	data, err := xml.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	return c.Write(eventType, cloudevents.ApplicationXML, data)
+}
+
+func (c *Context) ProtoBuf(eventType string, msg proto.Message, sessionIDs ...string) error {
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	return c.Write(eventType, "application/protobuf", data)
 }

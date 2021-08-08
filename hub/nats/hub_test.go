@@ -16,6 +16,8 @@ type Item struct {
 }
 
 func TestPublishAndQueueSubscribe(t *testing.T) {
+	sessionID := "my_session_id"
+
 	opts := HubOptions{
 		URL: "nats://nats:4222",
 	}
@@ -27,20 +29,18 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 
 	router := prelude.NewRouter("prelude", hub)
 
-	sessionID := "my_session_id"
-
 	router.AddRoute("s."+sessionID, func(c *prelude.Context) error {
 		defer func() {
 			wg.Done()
 		}()
 
-		assert.Equal(t, "wow", string(c.Event.Type()))
+		assert.Equal(t, "pong", string(c.Event.Type()))
 		assert.Equal(t, "\"done\"", string(c.Event.Data()))
 
 		return nil
 	})
 
-	router.AddRoute("sent", func(c *prelude.Context) error {
+	router.AddRoute("ping", func(c *prelude.Context) error {
 		defer func() {
 			wg.Done()
 		}()
@@ -50,22 +50,24 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "hello world", item.Message)
-		assert.Equal(t, sessionID, c.Event.Extensions()[prelude.SessionID])
+		assert.Equal(t, cloudevents.ApplicationJSON, c.Event.DataContentType())
+		assert.Equal(t, sessionID, c.Get(prelude.SessionID))
 
-		return c.JSON("wow", "done")
+		return c.JSON("pong", "done")
 	})
 
-	sendEvent := cloudevents.NewEvent()
-	sendEvent.SetID(uuid.NewString())
-	sendEvent.SetSource("client")
-	sendEvent.SetType("sent")
-	data := []byte(`{"message":"hello world"}`)
-	_ = sendEvent.SetData(cloudevents.ApplicationJSON, data)
-	sendEvent.SetExtension(prelude.SessionID, sessionID)
+	pingEvent := cloudevents.NewEvent()
+	pingEvent.SetID(uuid.NewString())
+	pingEvent.SetSource("client")
+	pingEvent.SetType("ping")
+	pingEvent.SetExtension(prelude.SessionID, sessionID)
 
-	err = hub.Publish(sendEvent.Type(), sendEvent)
-	require.Nil(t, err)
+	data := []byte(`{"message":"hello world"}`)
+	err = pingEvent.SetData(cloudevents.ApplicationJSON, data)
+	require.NoError(t, err)
+
+	err = hub.Publish(pingEvent.Type(), pingEvent)
+	require.NoError(t, err)
 
 	wg.Wait()
-
 }
