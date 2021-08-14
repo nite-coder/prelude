@@ -197,10 +197,7 @@ func (s *WSSession) eventLoop() {
 		}
 		select {
 		case event := <-s.eventChan:
-			// 目前先把 event aggreation 的機制移除，所以不會有 Queue 一秒的問題
-			events := []cloudevents.Event{}
-			events = append(events, event)
-			buf, err := json.Marshal(events)
+			buf, err := json.Marshal(event)
 			if err != nil {
 				log.Errorf("websocket: event marshal failed: %v", err)
 				continue
@@ -208,19 +205,6 @@ func (s *WSSession) eventLoop() {
 			message := &WSMessage{websocket.TextMessage, buf}
 			s.sendMessage(message)
 		}
-		// case <-timer:
-		// 	//log.Debugf("command chan length: %d", len(s.commandChan))
-		// 	if len(commands) > 0 {
-		// 		buf, err := json.Marshal(commands)
-		// 		commands = []*gateway.Command{}
-		// 		if err != nil {
-		// 			log.Errorf("websocket: command marshal failed: %v", err)
-		// 			continue
-		// 		}
-		// 		message := &WSMessage{websocket.TextMessage, buf}
-		// 		s.sendMessage(message)
-		// 	}
-		// }
 	}
 }
 

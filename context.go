@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	format "github.com/cloudevents/sdk-go/binding/format/protobuf/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"github.com/nite-coder/blackbear/pkg/cast"
@@ -113,5 +114,5 @@ func (c *Context) ProtoBuf(eventType string, msg proto.Message, sessionIDs ...st
 	if err != nil {
 		return err
 	}
-	return c.Write(eventType, "application/protobuf", data)
+	return c.Write(eventType, format.ContentTypeProtobuf, data)
 }

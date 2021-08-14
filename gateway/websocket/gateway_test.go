@@ -72,13 +72,9 @@ func TestGateway(t *testing.T) {
 	err = ws.WriteJSON(sendEvent)
 	require.Nil(t, err)
 
-	revCMDs := []cloudevents.Event{}
-	err = ws.ReadJSON(&revCMDs)
+	revEvent := cloudevents.Event{}
+	err = ws.ReadJSON(&revEvent)
 	require.Nil(t, err)
-
-	assert.Equal(t, 1, len(revCMDs))
-
-	revEvent := revCMDs[0]
 	assert.Equal(t, "wow", revEvent.Type())
 	assert.Equal(t, "\"done\"", string(revEvent.Data()))
 
