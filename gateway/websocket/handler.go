@@ -47,7 +47,9 @@ func (h *GatewayHTTPHandler) wsEndpoint(c *web.Context) error {
 		logger.Debug("websocket: wsEndpoint end")
 	}()
 
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	respHeader := http.Header{}
+	respHeader["Sec-WebSocket-Protocol"] = []string{"cloudevents.json"}
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, respHeader)
 	if err != nil {
 		return err
 	}
