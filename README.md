@@ -1,26 +1,30 @@
 # Prelude
-A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `Chatroom`, `Online Game`, `Instant Messaging` 
+
+A simple lightweight network framework for Go.  It is useful for long connection applications such as `IOT`, `Chatroom`, `Online Game`, `Instant Messaging`
 
 ## Feature
+
 1. `Websocket` is supported (`TCP`, `MQTT` maybe later)
-1. distributed architecture and can be scale out 
+1. distributed architecture and can be scale out
 1. handle 1 million connections
 1. use the `CloudEvents 1.0 specification` as event format
 1. support `JSON`, `XML`, `ProtoBuf` as content type
 1. Golang style
 
 ## Roadmap
+
 1. support middleware chain
 
 ## Installation
 
-```
+```shell
 go get -u github.com/nite-coder/prelude
 ```
 
 ## Example
 
 #### Server
+
 ```Go
 func main() {
 	opts := hubNATS.HubOptions{
@@ -50,6 +54,7 @@ func main() {
 ```
 
 #### Client
+
 ```Go
 
 func main() {
