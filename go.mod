@@ -6,6 +6,7 @@ require (
 	github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.10.1
 	github.com/cloudevents/sdk-go/protocol/ws/v2 v2.10.1
 	github.com/cloudevents/sdk-go/v2 v2.10.1
+	github.com/gin-gonic/gin v1.8.1 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
