@@ -14,7 +14,7 @@ func main() {
 	logger := log.New()
 	logOpts := console.ConsoleOptions{DisableColor: true}
 	clog := console.New(logOpts)
-	logger.AddHandler(clog, log.GetLevelsFromMinLevel("info")...)
+	logger.AddHandler(clog, log.GetLevelsFromMinLevel("error")...)
 	log.SetLogger(logger)
 	defer log.Flush()
 
@@ -27,7 +27,7 @@ func main() {
 		panic(err)
 	}
 
-	name, _ := config.String("app.name")
+	name, _ := config.String("app.id")
 	router := prelude.NewRouter(name, hub)
 	router.AddRoute("ping", func(c *prelude.Context) error {
 		return c.JSON("pong", nil)
