@@ -1,1 +1,1 @@
-./setup.sh 10000 2 app
+./setup.sh 10000 2 host.docker.internal

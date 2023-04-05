@@ -21,7 +21,7 @@ func TestGateway(t *testing.T) {
 	ctx := context.Background()
 
 	opts := nats.HubOptions{
-		URL: "nats://nats:4222",
+		URL: "nats://host.docker.internal:4222",
 	}
 	hub, err := nats.NewNatsHub(opts)
 	require.Nil(t, err)

@@ -12,13 +12,14 @@ import (
 func main() {
 	// use console handler to log all level logs
 	logger := log.New()
-	clog := console.New()
+	logOpts := console.ConsoleOptions{DisableColor: true}
+	clog := console.New(logOpts)
 	logger.AddHandler(clog, log.GetLevelsFromMinLevel("info")...)
 	log.SetLogger(logger)
 	defer log.Flush()
 
 	opts := hubNATS.HubOptions{
-		URL:   "nats://nats:4222",
+		URL:   "nats://host.docker.internal:4222",
 		Group: "gateway",
 	}
 	hub, err := hubNATS.NewNatsHub(opts)

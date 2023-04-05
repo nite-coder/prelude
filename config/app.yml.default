@@ -1,11 +1,14 @@
 app:
-  id: gateway
-  name: prelude
+  id: prelude
+
+
+websocket:
+  pong_wait: 0
   max_message_size_byte: 4096000
   bucket_count: 128
   bucket_event_count: 128
   session_inbound_count: 128
   session_outbound_count: 128
   session_event_count: 128
-  session_pong_wait_sec: 0
-  session_update_route: false
+  session_update_route: false # enable
+

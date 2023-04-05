@@ -43,8 +43,8 @@ type Manager struct {
 func NewManager(hub prelude.Huber) *Manager {
 	hostname, _ := os.Hostname()
 
-	bucketCount, _ := config.Int32("app.bucket_count", 128)
-	eventCount, _ := config.Int32("app.bucket_event_count", 128)
+	bucketCount, _ := config.Int32("websocket.bucket_count", 128)
+	eventCount, _ := config.Int32("websocket.bucket_event_count", 128)
 
 	m := &Manager{
 		hub:           hub,

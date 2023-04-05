@@ -19,7 +19,7 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 	sessionID := "my_session_id"
 
 	opts := HubOptions{
-		URL: "nats://nats:4222",
+		URL: "nats://host.docker.internal:4222",
 	}
 	hub, err := NewNatsHub(opts)
 	require.Nil(t, err)
@@ -29,7 +29,7 @@ func TestPublishAndQueueSubscribe(t *testing.T) {
 
 	router := prelude.NewRouter("prelude", hub)
 
-	router.AddRoute("s."+sessionID, func(c *prelude.Context) error {
+	router.AddRoute("sess."+sessionID, func(c *prelude.Context) error {
 		defer func() {
 			wg.Done()
 		}()

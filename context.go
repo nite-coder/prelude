@@ -83,7 +83,7 @@ func (c *Context) Write(eventType string, contentType string, bytes []byte, sess
 	}
 
 	for _, sessionID := range sessionIDs {
-		topic := fmt.Sprintf("s.%s", sessionID)
+		topic := fmt.Sprintf("sess.%s", sessionID)
 		err := c.hub.Publish(topic, event)
 		if err != nil {
 			return err

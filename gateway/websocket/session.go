@@ -50,9 +50,9 @@ type WSSession struct {
 
 // NewWSSession 產生一個新的 websocket session
 func NewWSSession(id string, clientIP string, conn *websocket.Conn, manager *Manager) *WSSession {
-	inboundCount, _ := config.Int32("app.session_inbound_count", 128)
-	outboundCount, _ := config.Int32("app.session_outbound_count", 128)
-	eventCount, _ := config.Int32("app.session_event_count", 128)
+	inboundCount, _ := config.Int32("websocket.session_inbound_count", 128)
+	outboundCount, _ := config.Int32("websocket.session_outbound_count", 128)
+	eventCount, _ := config.Int32("websocket.session_event_count", 128)
 
 	return &WSSession{
 		manager:    manager,
@@ -101,21 +101,20 @@ func (s *WSSession) readLoop() {
 		_ = s.Close()
 	}()
 
-	pongWaitSec, _ := config.Duration("app.pong_wait_sec", 0)
-	pongWait := pongWaitSec * time.Second
-	if pongWaitSec > 0 {
+	pongWait, _ := config.Duration("websocket.pong_wait", 0)
+	if pongWait > 0 {
 		_ = s.socket.SetReadDeadline(time.Now().Add(pongWait))
 	}
 
 	// Maximum message size allowed from peer.
-	maxMessageSizeByte, _ := config.Int64("app.max_message_size_byte", 0)
+	maxMessageSizeByte, _ := config.Int64("websocket.max_message_size_byte", 0)
 	if maxMessageSizeByte > 0 {
 		s.socket.SetReadLimit(maxMessageSizeByte)
 	}
 
 	s.socket.SetPongHandler(func(string) error {
 		s.lastSeenAt = time.Now().UTC()
-		if pongWaitSec > 0 {
+		if pongWait > 0 {
 			_ = s.socket.SetReadDeadline(time.Now().Add(pongWait)) // Reset the read deadline when a pong is received
 		}
 		return nil
@@ -287,13 +286,13 @@ func (s *WSSession) Start() error {
 	go s.writeLoop()
 	go s.eventLoop()
 
-	isUpdateRoute, _ := config.Bool("app.session_update_route", false)
+	isUpdateRoute, _ := config.Bool("websocket.session_update_route", false)
 	if isUpdateRoute {
 		go s.updateRouteLoop()
 	}
 
 	router := s.manager.hub.Router()
-	topic := fmt.Sprintf("s.%s", s.ID())
+	topic := fmt.Sprintf("sess.%s", s.ID())
 	router.AddRoute(topic, func(c *prelude.Context) error {
 
 		switch c.Event.Type() {
