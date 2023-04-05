@@ -4,5 +4,5 @@ IP=$3
 go build --tags "static netgo" -o client client.go
 for (( c=0; c<${REPLICAS}; c++ ))
 do
-    docker run -l 1m-go-websockets -v ${LOCAL_WORKSPACE_FOLDER}/examples/websocket/client:/client -d alpine /client/client -conn=${CONNECTIONS} -ip=${IP} 
+    docker run -l 1m-go-websockets --network=host -v ${LOCAL_WORKSPACE_FOLDER}/examples/websocket/client:/client -d alpine /client/client -conn=${CONNECTIONS} -ip=${IP} 
 done
